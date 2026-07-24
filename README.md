@@ -1,16 +1,45 @@
-# React + Vite
+# PeQ Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicación frontend construida con React y Vite para el sistema PeQ. Este proyecto centraliza la interfaz de usuario, el ruteo, la autenticación en el navegador y el consumo de la API del backend.
 
-Currently, two official plugins are available:
+## Tecnologías utilizadas
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19: base de la interfaz y componentes.
+- Vite: entorno de desarrollo, empaquetado y build de producción.
+- React Router DOM: navegación y control de rutas.
+- Axios: cliente HTTP para consumir la API.
+- Tailwind CSS 4: utilidades de estilos integradas mediante el plugin de Vite.
+- Lucide React: conjunto de iconos usado en la navegación y componentes visuales.
+- ESLint: validación y consistencia de código.
 
-## React Compiler
+## Requisitos previos
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Antes de ejecutar el proyecto necesitas tener instalado:
 
-## Expanding the ESLint configuration
+- Node.js 18 o superior.
+- npm 9 o superior.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Puedes verificarlo con:
+
+```bash
+node -v
+npm -v
+```
+
+## Instalación
+
+1. Clona el repositorio.
+2. Entra al directorio del proyecto.
+3. Instala las dependencias:
+
+```bash
+npm install
+```
+
+## Cómo correr el proyecto
+
+```bash
+npm run dev
+```
+
+Por defecto Vite levanta la aplicación en `http://localhost:5173`.
