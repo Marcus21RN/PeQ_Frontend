@@ -8,10 +8,16 @@ import AdminUsuarios from './pages/admin/adminUsuarios.jsx';
 import AdminSolicitudes from './pages/admin/adminSolicitudes.jsx';
 import AdminLogs from './pages/admin/adminLogs.jsx';
 import AdminPerfil from './pages/admin/adminPerfil.jsx';
+import PerfilRouter from './pages/perfil.jsx';
 
 import ComercialInicio from './pages/comercial/comerInicio.jsx';
 import ComercialAnimales from './pages/comercial/comerAnimales.jsx';
 import ComercialRegAnimal from './pages/comercial/comerRegAnimal.jsx';
+
+import VeterinarioDashboard from './pages/veterinario/vetDashboard.jsx'
+import VeterinarioSolicitudes from './pages/veterinario/vetSolicitudes.jsx'
+import VeterinarioActividades from './pages/veterinario/vetActividades.jsx'
+import VeterinarioPerfil from './pages/veterinario/vetPerfil.jsx'
 
 // Vistas temporales de prueba
 const Dashboard = () => <h1 className="text-2xl font-bold">Bienvenido al Dashboard</h1>;
@@ -65,6 +71,12 @@ function App() {
           <Route path="/admin/solicitudes" element={<AdminSolicitudes />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/perfil" element={<AdminPerfil />} />
+          <Route path="/perfil" element={<PerfilRouter />} />
+
+          <Route path="/veterinario/dashboard" element={<VeterinarioDashboard/>}/>
+          <Route path="/veterinario/solicitudes" element={<VeterinarioSolicitudes/>}/>
+          <Route path="/veterinario/actividades" element={<VeterinarioActividades/>}/>
+          <Route path="/veterinario/perfil" element={<VeterinarioPerfil/>}/>
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
