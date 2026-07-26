@@ -388,7 +388,7 @@ export default function VetActividades() {
 										type="date"
 										value={startDate}
 										onChange={handleStartDateChange}
-										className="w-[150px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#2F6E2D] focus:ring-2 focus:ring-[#2F6E2D]/15"
+										className="w-37.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#2F6E2D] focus:ring-2 focus:ring-[#2F6E2D]/15"
 									/>
 								</div>
 							</div>
@@ -400,7 +400,7 @@ export default function VetActividades() {
 									type="date"
 									value={endDate}
 									onChange={handleEndDateChange}
-									className="w-[150px] rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#2F6E2D] focus:ring-2 focus:ring-[#2F6E2D]/15"
+									className="w-37.5 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 outline-none focus:border-[#2F6E2D] focus:ring-2 focus:ring-[#2F6E2D]/15"
 								/>
 							</div>
 
@@ -417,7 +417,7 @@ export default function VetActividades() {
 
 					<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
 						<div className="overflow-x-auto">
-							<table className="w-full min-w-[1000px] text-left text-sm text-[#243145]">
+							<table className="w-full min-w-250 text-left text-sm text-[#243145]">
 								<thead className="border-b border-gray-200 bg-gray-50/60 text-[12px] font-semibold text-[#1F2937]">
 									<tr>
 										<th className="px-6 py-4">
@@ -443,7 +443,7 @@ export default function VetActividades() {
 												<td className="px-6 py-5">{getAccionBadge(activity.action)}</td>
 												<td className="px-6 py-5 text-[#263042]">{activity.entidad}</td>
 												<td className="px-6 py-5 text-[#263042]">
-													<div className="max-w-[520px] leading-relaxed">{activity.detalles}</div>
+													<div className="max-w-130 leading-relaxed">{activity.detalles}</div>
 												</td>
 											</tr>
 										))

@@ -8,11 +8,11 @@ import AdminUsuarios from './pages/admin/adminUsuarios.jsx';
 import AdminSolicitudes from './pages/admin/adminSolicitudes.jsx';
 import AdminLogs from './pages/admin/adminLogs.jsx';
 import AdminPerfil from './pages/admin/adminPerfil.jsx';
-import PerfilRouter from './pages/perfil.jsx';
 
 import ComercialInicio from './pages/comercial/comerInicio.jsx';
-import ComercialAnimales from './pages/comercial/comerAnimales.jsx';
 import ComercialRegAnimal from './pages/comercial/comerRegAnimal.jsx';
+import ComercialAnimales from './pages/comercial/comerAnimales.jsx';
+
 
 import VeterinarioDashboard from './pages/veterinario/vetDashboard.jsx'
 import VeterinarioSolicitudes from './pages/veterinario/vetSolicitudes.jsx'
@@ -21,7 +21,6 @@ import VeterinarioPerfil from './pages/veterinario/vetPerfil.jsx'
 
 // Vistas temporales de prueba
 const Dashboard = () => <h1 className="text-2xl font-bold">Bienvenido al Dashboard</h1>;
-const VetCertificaciones = () => <h1 className="text-2xl font-bold">Certificaciones (Veterinario)</h1>;
 const Unauthorized = () => <h1 className="text-2xl font-bold text-red-600">No tienes permiso para ver esta pantalla</h1>;
 
 function App() {
@@ -63,15 +62,11 @@ function App() {
           <Route path="/comercial/animales" element={<ComercialAnimales />} />
           <Route path="/comercial/registrar-animal" element={<ComercialRegAnimal />} />
 
-
-          <Route path="/veterinario/certificaciones" element={<VetCertificaciones />} />
-
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/usuarios" element={<AdminUsuarios />} />
           <Route path="/admin/solicitudes" element={<AdminSolicitudes />} />
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/perfil" element={<AdminPerfil />} />
-          <Route path="/perfil" element={<PerfilRouter />} />
 
           <Route path="/veterinario/dashboard" element={<VeterinarioDashboard/>}/>
           <Route path="/veterinario/solicitudes" element={<VeterinarioSolicitudes/>}/>

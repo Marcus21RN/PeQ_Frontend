@@ -64,7 +64,7 @@ export default function VetDasbouard() {
 				</div>
 
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
-					<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between max-w-[170px] h-[96px]">
+					<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between max-w-42.5 h-24">
 						<span className="text-[11px] text-[#8C8C8C] text-center">Pendientes</span>
 						<span className="text-3xl font-bold text-[#111827] text-center leading-none">{mockStats.pendientes}</span>
 					</div>
