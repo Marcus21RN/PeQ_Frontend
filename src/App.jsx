@@ -10,8 +10,9 @@ import AdminLogs from './pages/admin/adminLogs.jsx';
 import AdminPerfil from './pages/admin/adminPerfil.jsx';
 
 import ComercialInicio from './pages/comercial/comerInicio.jsx';
-import ComercialRegAnimal from './pages/comercial/comerRegAnimal.jsx';
 import ComercialAnimales from './pages/comercial/comerAnimales.jsx';
+import ComercialActividades from './pages/comercial/comerActividades.jsx';
+import ComercialPerfil from './pages/comercial/comerPerfil.jsx';
 
 
 import VeterinarioDashboard from './pages/veterinario/vetDashboard.jsx'
@@ -20,14 +21,13 @@ import VeterinarioActividades from './pages/veterinario/vetActividades.jsx'
 import VeterinarioPerfil from './pages/veterinario/vetPerfil.jsx'
 
 // Vistas temporales de prueba
-const Dashboard = () => <h1 className="text-2xl font-bold">Bienvenido al Dashboard</h1>;
 const Unauthorized = () => <h1 className="text-2xl font-bold text-red-600">No tienes permiso para ver esta pantalla</h1>;
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Rutas Públicas */}
         <Route path="/login" element={<Login />} />
@@ -56,11 +56,12 @@ function App() {
         */}
 
         <Route element={<MainLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/login" element={<Login />} />
 
           <Route path="/comercial/inicio" element={<ComercialInicio />} />
           <Route path="/comercial/animales" element={<ComercialAnimales />} />
-          <Route path="/comercial/registrar-animal" element={<ComercialRegAnimal />} />
+          <Route path="/comercial/actividades" element={<ComercialActividades />} />
+          <Route path="/comercial/perfil" element={<ComercialPerfil />} />
 
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/usuarios" element={<AdminUsuarios />} />
@@ -68,12 +69,13 @@ function App() {
           <Route path="/admin/logs" element={<AdminLogs />} />
           <Route path="/admin/perfil" element={<AdminPerfil />} />
 
+
           <Route path="/veterinario/dashboard" element={<VeterinarioDashboard/>}/>
           <Route path="/veterinario/solicitudes" element={<VeterinarioSolicitudes/>}/>
           <Route path="/veterinario/actividades" element={<VeterinarioActividades/>}/>
           <Route path="/veterinario/perfil" element={<VeterinarioPerfil/>}/>
 
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
         </Route>
       </Routes>
     </BrowserRouter>

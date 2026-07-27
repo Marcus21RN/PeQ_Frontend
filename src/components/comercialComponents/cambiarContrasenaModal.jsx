@@ -28,7 +28,7 @@ export default function CambiarContrasenaModal({ isOpen, onClose }) {
 	};
 
 	return (
-		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm animate-in fade-in" onClick={onClose}>
+		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-sm" onClick={onClose}>
 			<div className="flex w-full max-w-md flex-col overflow-hidden rounded-[22px] bg-white shadow-2xl" onClick={(event) => event.stopPropagation()}>
 				<div className="flex items-center justify-between border-b border-gray-200 px-6 py-5">
 					<h2 className="text-[24px] font-bold text-[#111827]">Cambiar Contraseña</h2>

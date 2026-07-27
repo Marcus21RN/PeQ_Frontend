@@ -2,12 +2,20 @@
 
 // src/pages/comercial/MisAnimales.jsx
 import { useState, useEffect } from 'react';
-import { Search, Filter, Eye, FileText } from 'lucide-react';
+import { Search, Filter, Eye, FileText, Edit2, Plus } from 'lucide-react';
 import ModalDetalleAnimal from '../../components/comercialComponents/detalleAnimalModal.jsx';
+import ModalRegistrarAnimal from '../../components/comercialComponents/registrarAnimalModal.jsx';
+import ModalEditarAnimal from '../../components/comercialComponents/editarAnimalModal.jsx';
 
 export default function MisAnimales() {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [animalSeleccionado, setAnimalSeleccionado] = useState(null);
+  // Estados para los modales
+  const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false);
+  const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false);
+  const [isEditarModalOpen, setIsEditarModalOpen] = useState(false);
+  
+  // Estados para los datos seleccionados
+  const [animalSeleccionadoId, setAnimalSeleccionadoId] = useState(null);
+  const [animalParaEditar, setAnimalParaEditar] = useState(null);
 
   // ==========================================
   // TODO: INTEGRACIÓN CON API (Backend)
@@ -42,9 +50,29 @@ export default function MisAnimales() {
     { id: 'AVE-001', tipo: 'Avícola', raza: 'Rhode Island', edad: '0.5 años', peso: '2.5 kg', estado: 'Certificado', precio: '$125', fecha: '19/2/2025' }
   ];
 
+  // Controladores de apertura de modales
   const abrirDetalle = (id) => {
-    setAnimalSeleccionado(id);
-    setIsModalOpen(true);
+    setAnimalSeleccionadoId(id);
+    setIsDetalleModalOpen(true);
+  };
+
+  const abrirEditar = (animalRow) => {
+    // Mapeamos los datos básicos de la fila para inyectarlos en el modal de edición
+    setAnimalParaEditar({
+      id_display: animalRow.id,
+      nombre: `${animalRow.raza} 001`, // Nombre simulado
+      sexo: 'Hembra', // Dato simulado por defecto
+      edad: animalRow.edad.replace(' años', ''),
+      peso: animalRow.peso.replace(' kg', ''),
+      condicion: 'Bueno',
+      proposito: 'Producción',
+      tipo_produccion: 'Engorda',
+      lote: 'Lote Principal',
+      origen: 'Granja San José, Michoacán',
+      tipo: animalRow.tipo,
+      raza: animalRow.raza
+    });
+    setIsEditarModalOpen(true);
   };
 
   const getEstadoBadge = (estado) => {
@@ -85,8 +113,17 @@ export default function MisAnimales() {
           <option>Certificados</option>
           <option>En Revisión</option>
         </select>
-        <button className="bg-[#5C743D] hover:bg-[#4A5D31] text-white px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-          <Filter className="w-4 h-4" /> Limpiar Filtros
+        
+        <button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+          <Filter className="w-4 h-4" /> Limpiar
+        </button>
+        
+        {/* Botón principal para Registrar Nuevo Animal */}
+        <button 
+          onClick={() => setIsRegistrarModalOpen(true)}
+          className="bg-[#3B2211] hover:bg-[#2A180C] text-white px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Registrar Animal
         </button>
       </div>
 
@@ -120,8 +157,16 @@ export default function MisAnimales() {
                   <td className="px-6 py-4 text-gray-500">{a.fecha}</td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center items-center gap-3">
-                      <button onClick={() => abrirDetalle(a.id)} className="text-[#5C743D] hover:text-[#3B2211] transition-colors"><Eye className="w-5 h-5" /></button>
-                      {a.doc && <button className="text-[#5C743D] hover:text-[#3B2211] transition-colors"><FileText className="w-5 h-5" /></button>}
+                      {/* Ver Detalles */}
+                      <button onClick={() => abrirDetalle(a.id)} className="text-[#5C743D] hover:text-[#3B2211] transition-colors" title="Ver Detalles">
+                        <Eye className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Editar */}
+                      <button onClick={() => abrirEditar(a)} className="text-[#D97706] hover:text-[#3B2211] transition-colors" title="Editar Animal">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                    
                     </div>
                   </td>
                 </tr>
@@ -147,12 +192,25 @@ export default function MisAnimales() {
         </div>
       </div>
 
-      {/* Renderizado del Modal */}
+      {/* Renderizado de todos los Modales */}
       <ModalDetalleAnimal 
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        animalId={animalSeleccionado}
+        isOpen={isDetalleModalOpen}
+        onClose={() => setIsDetalleModalOpen(false)}
+        animalId={animalSeleccionadoId}
       />
+      
+      <ModalRegistrarAnimal 
+        isOpen={isRegistrarModalOpen}
+        onClose={() => setIsRegistrarModalOpen(false)}
+      />
+      
+      <ModalEditarAnimal 
+        isOpen={isEditarModalOpen}
+        onClose={() => setIsEditarModalOpen(false)}
+        animalId={animalParaEditar?.id_display}
+        dataActual={animalParaEditar}
+      />
+
     </div>
   );
 }
