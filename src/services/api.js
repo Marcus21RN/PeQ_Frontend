@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 // Obtiene la URL desplegada en Render o usa localhost como fallback
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_BACKEND_URL || 'https://peq-backend.onrender.com';
 
 const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_BASE_URL.replace(/\/$/, ''),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -28,7 +28,7 @@ export const loginRequest = async (username, password) => {
   formData.append('username', username);
   formData.append('password', password);
 
-  const response = await axios.post(`${API_BASE_URL}/login`, formData, {
+  const response = await api.post('/login', formData, {
     headers: {
       'Content-Type': 'application/x-www-form-urlencoded',
     },

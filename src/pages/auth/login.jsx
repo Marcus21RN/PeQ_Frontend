@@ -16,6 +16,13 @@ export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const getRouteByRole = (role) => {
+    if (role === 'admin') return '/admin/dashboard';
+    if (role === 'veterinario') return '/veterinario/dashboard';
+    if (role === 'productor') return '/comercial/inicio';
+    return '/admin/dashboard';
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -25,8 +32,8 @@ export default function Login() {
     const result = await login(username, password);
 
     if (result.success) {
-      // Si el backend valida las credenciales y devuelve el token, vamos al panel
-      navigate('/dashboard');
+      const role = result.user?.rol_nombre || result.user?.role || (result.user?.id_rol === 6 ? 'admin' : 'productor');
+      navigate(getRouteByRole(role));
     } else {
       // Si falla, mostramos el error
       setError(result.message);
