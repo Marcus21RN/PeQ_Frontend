@@ -1,15 +1,21 @@
 import { 
-  Home, Users, FileText, Activity, Shield, User, 
-  PlusCircle, List, Edit, History, FileCheck 
+  Home, Users, FileText, Activity, User, List, History, FileCheck 
 } from 'lucide-react';
 
+/**
+ * Mapeo de roles para la navegación
+ * id_rol 1 = productor_traspatio
+ * id_rol 3 = productor_comercial
+ * id_rol 4 = veterinario
+ * id_rol 5 = administrador
+ */
 export const NAV_ITEMS = [
-  // --- COMÚN ---
+  // --- COMÚN (TODOS LOS ROLES) ---
   {
     title: 'Panel Principal',
     path: '/dashboard',
     icon: Home,
-    roles: ['admin', 'veterinario', 'productor', 'traspatio']
+    roles: ['administrador', 'veterinario', 'productor_comercial', 'productor_traspatio']
   },
 
   // --- ADMINISTRADOR ---
@@ -17,30 +23,24 @@ export const NAV_ITEMS = [
     title: 'Gestión de Usuarios',
     path: '/admin/usuarios',
     icon: Users,
-    roles: ['admin']
+    roles: ['administrador']
   },
   {
     title: 'Solicitudes de Registro',
     path: '/admin/solicitudes',
     icon: FileText,
-    roles: ['admin']
+    roles: ['administrador']
   },
   {
-    title: 'Actividad del Sistema',
-    path: '/admin/actividad-sistema',
+    title: 'Actividades del Sistema',
+    path: '/admin/logs',
     icon: Activity,
-    roles: ['admin']
-  },
-  {
-    title: 'Actividad Admins',
-    path: '/admin/actividad-admins',
-    icon: Shield,
-    roles: ['admin']
+    roles: ['administrador']
   },
 
   // --- VETERINARIO ---
   {
-    title: 'Todas las Solicitudes',
+    title: 'Revisión de Certificaciones',
     path: '/veterinario/solicitudes',
     icon: FileCheck,
     roles: ['veterinario']
@@ -52,37 +52,39 @@ export const NAV_ITEMS = [
     roles: ['veterinario']
   },
 
-  // --- PRODUCTOR / TRASPATIO ---
-  {
-    title: 'Registrar Animal',
-    path: '/ganado/registrar',
-    icon: PlusCircle,
-    roles: ['productor', 'traspatio']
-  },
+  // --- PRODUCTOR COMERCIAL ---
   {
     title: 'Mis Animales',
-    path: '/ganado/lista',
+    path: '/comercial/animales',
     icon: List,
-    roles: ['productor', 'traspatio']
-  },
-  {
-    title: 'Modificar Animales',
-    path: '/ganado/modificar',
-    icon: Edit,
-    roles: ['productor'] // <-- Función Premium: Traspatio no la ve
+    roles: ['productor_comercial']
   },
   {
     title: 'Historial de Acciones',
-    path: '/ganado/historial',
+    path: '/comercial/actividades',
     icon: History,
-    roles: ['productor', 'traspatio']
+    roles: ['productor_comercial']
   },
 
-  // --- COMÚN (AL FINAL) ---
+  // --- PRODUCTOR TRASPATIO ---
+  {
+    title: 'Mis Animales',
+    path: '/traspatio/animales',
+    icon: List,
+    roles: ['productor_traspatio']
+  },
+  {
+    title: 'Historial de Acciones',
+    path: '/traspatio/actividades',
+    icon: History,
+    roles: ['productor_traspatio']
+  },
+
+  // --- COMÚN (TODOS LOS ROLES, AL FINAL) ---
   {
     title: 'Mi Perfil',
     path: '/perfil',
     icon: User,
-    roles: ['admin', 'veterinario', 'productor', 'traspatio']
+    roles: ['administrador', 'veterinario', 'productor_comercial', 'productor_traspatio']
   },
 ];

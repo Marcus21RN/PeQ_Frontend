@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { loginRequest } from '../services/api.js';
 
+/* eslint-disable react-refresh/only-export-components */
+
 const decodeTokenPayload = (token) => {
   if (!token) return null;
 
@@ -16,16 +18,16 @@ const decodeTokenPayload = (token) => {
   }
 };
 
-/* eslint-disable react-refresh/only-export-components */
-
 const AuthContext = createContext();
 
-// Función auxiliar para traducir el id_rol a un nombre en texto
 const obtenerNombreDeRol = (id_rol) => {
-  if ([1, 3].includes(id_rol)) return 'productor'; // Asignado a id_rol 1 y 3
-  if ([2, 4].includes(id_rol)) return 'veterinario'; // Asignado a id_rol 2 y 4
-  if ([5, 6].includes(id_rol)) return 'admin'; // Asignado a id_rol 5 y 6
-  return 'desconocido';
+  const roleMap = {
+    1: 'administrador',
+    2: 'veterinario',
+    3: 'productor_comercial',
+    4: 'productor_traspatio',
+  };
+  return roleMap[id_rol] || 'desconocido';
 };
 
 export const AuthProvider = ({ children }) => {
@@ -56,40 +58,44 @@ export const AuthProvider = ({ children }) => {
       if (!accessToken) {
         return { success: false, message: 'El backend no devolvió un token de acceso.' };
       }
-
+      
       const payload = decodeTokenPayload(accessToken);
       const userData = data.usuario_info
         ? {
-            id_usuario: data.usuario_info.id_usuario,
-            usuario: data.usuario_info.usuario,
-            nombre: data.usuario_info.nombre,
-            apellido_paterno: data.usuario_info.apellido_paterno,
-            id_rol: data.usuario_info.id_rol,
-            rol_nombre: obtenerNombreDeRol(data.usuario_info.id_rol),
-          }
-        : {
-            id_usuario: payload?.id_usuario ?? null,
-            usuario: payload?.sub || payload?.usuario || username,
-            nombre: payload?.nombre || payload?.sub || username,
-            apellido_paterno: payload?.apellido_paterno || '',
-            id_rol: payload?.id_rol ?? payload?.rol_id ?? null,
-            rol_nombre: obtenerNombreDeRol(payload?.id_rol ?? payload?.rol_id),
-          };
+          id_usuario: data.usuario_info.id_usuario,
+          usuario: data.usuario_info.usuario,
+          nombre: data.usuario_info.nombre,
+          apellido_paterno: data.usuario_info.apellido_paterno,
+          id_rol: data.usuario_info.id_rol,
+          rol_nombre: obtenerNombreDeRol(data.usuario_info.id_rol),
+        }
+      : {
+          id_usuario: payload?.id_usuario ?? null,
+          usuario: payload?.sub || payload?.usuario || username,
+          nombre: payload?.nombre || payload?.sub || username,
+          apellido_paterno: payload?.apellido_paterno || '',
+          id_rol: payload?.id_rol ?? payload?.rol_id ?? null,
+          rol_nombre: obtenerNombreDeRol(payload?.id_rol ?? payload?.rol_id),
+        };
 
+      // Guardar en estado y localStorage
       setToken(accessToken);
       setUser(userData);
-
       localStorage.setItem('access_token', accessToken);
       localStorage.setItem('user_info', JSON.stringify(userData));
 
       return { success: true, user: userData };
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
-      const backendMessage = error?.response?.data?.detail || error?.response?.data?.message;
-
-      return {
-        success: false,
-        message: backendMessage || 'Error en las credenciales o en la conexión con el backend.',
+      const backendMessage = error.response?.data?.detail || error.response?.data?.message;
+      // Limpiar token si algo falla
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user_info');
+      setToken(null);
+      setUser(null);
+      return { 
+        success: false, 
+        message: backendMessage || 'Error en las credenciales o en la conexión con el Backend'
       };
     }
   };
@@ -110,6 +116,8 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  if (!context) {
+    throw new Error('useAuth debe ser usado dentro de un AuthProvider');
+  }
   return context;
-};
+}

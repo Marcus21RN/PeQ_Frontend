@@ -14,10 +14,22 @@ export const Sidebar = () => {
   // Determinar colores del avatar según rol (basado en Figma)
   const getAvatarBg = (rol) => {
     switch (rol) {
-      case 'admin': return 'bg-[#5A3B2A]'; // Café oscuro
-      case 'productor': return 'bg-[#2E6B2C]'; // Verde oscuro
+      case 'administrador': return 'bg-[#5A3B2A]'; // Café oscuro
+      case 'productor_comercial': return 'bg-[#2E6B2C]'; // Verde oscuro
+      case 'productor_traspatio': return 'bg-[#B4E3A6] text-[#2E6B2C]'; // Verde claro
       case 'veterinario': return 'bg-[#B4E3A6] text-[#2E6B2C]'; // Verde claro
       default: return 'bg-gray-500';
+    }
+  };
+
+  // Obtener etiqueta de rol para mostrar
+  const getRolLabel = (rol) => {
+    switch (rol) {
+      case 'administrador': return 'Administrador';
+      case 'veterinario': return 'Veterinario Certificador';
+      case 'productor_comercial': return 'Rancho Comercial';
+      case 'productor_traspatio': return 'Productor de Traspatio';
+      default: return 'Usuario';
     }
   };
 
@@ -38,9 +50,8 @@ export const Sidebar = () => {
           <span className="font-bold text-gray-900 text-sm">
             {user?.nombre} {user?.apellido_paterno}
           </span>
-          <span className="text-xs text-gray-500 capitalize">
-            {user?.rol_nombre === 'productor' ? 'Rancho Comercial' : 
-             user?.rol_nombre === 'veterinario' ? 'Veterinario Certificador' : 'Administrador'}
+          <span className="text-xs text-gray-500">
+            {getRolLabel(user?.rol_nombre)}
           </span>
         </div>
       </div>
