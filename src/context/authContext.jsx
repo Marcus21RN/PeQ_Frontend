@@ -20,12 +20,13 @@ const decodeTokenPayload = (token) => {
 
 const AuthContext = createContext();
 
+// CORRECCIÓN: IDs actualizados según la base de datos
 const obtenerNombreDeRol = (id_rol) => {
   const roleMap = {
-    1: 'administrador',
-    2: 'veterinario',
+    1: 'productor_traspatio',
     3: 'productor_comercial',
-    4: 'productor_traspatio',
+    4: 'veterinario',
+    5: 'administrador',
   };
   return roleMap[id_rol] || 'desconocido';
 };
@@ -88,7 +89,6 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Error al iniciar sesión:', error);
       const backendMessage = error.response?.data?.detail || error.response?.data?.message;
-      // Limpiar token si algo falla
       localStorage.removeItem('access_token');
       localStorage.removeItem('user_info');
       setToken(null);
