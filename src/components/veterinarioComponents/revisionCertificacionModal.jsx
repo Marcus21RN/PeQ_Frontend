@@ -11,40 +11,30 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 	const data = useMemo(() => {
 		if (!solicitud) return null;
 
-		const identificador = solicitud.animal || solicitud.id;
-		const esCasoEjemplo = identificador === 'C-012' || solicitud.id === 'SOL-005';
+		// Formateamos la fecha para que se vea igual que en tu diseño (ej. "14 de enero de 2026")
+		const fechaFormateada = new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES', {
+			day: 'numeric',
+			month: 'long',
+			year: 'numeric',
+		});
 
-		if (esCasoEjemplo) {
-			return {
-				id: 'C-012',
-				estado: 'Pendiente',
-				productor: 'Laura Hernández',
-				rancho: 'Rancho Los Pinos',
-				tipoAnimal: 'Bovino',
-				raza: 'Charolais',
-				edad: '3',
-				sexo: 'Macho',
-				pesoEstimado: '530',
-				condicion: 'Excelente',
-				crias: 'No',
-				fechaSolicitud: '28 de febrero de 2025',
-				vacunaciones: [{ nombre: 'Vacunación Aftosa', aprobada: false }],
-			};
-		}
-
+		// Mapeamos los datos exactamente como vienen de tu función fn_obtener_solicitudes_vet
 		return {
-			id: identificador,
-			estado: 'Pendiente',
-			productor: solicitud.productor,
+			id_bd: solicitud.id_solicitud, // El ID real numérico para hacer el PUT en la BD
+			codigo: solicitud.codigo_solicitud, // El ID visual (SOL-001)
+			arete: solicitud.arete_animal,
+			estado: solicitud.estado_solicitud,
+			productor: solicitud.nombre_productor,
 			rancho: solicitud.rancho,
-			tipoAnimal: solicitud.tipo || 'Bovino',
-			raza: solicitud.raza || solicitud.nombre,
-			edad: solicitud.edad,
-			sexo: 'Macho',
-			pesoEstimado: solicitud.peso ? solicitud.peso.replace(' kg', '') : '',
+			tipoAnimal: solicitud.tipo_ganado,
+			raza: solicitud.raza,
+			edad: solicitud.edad_anios,
+			sexo: 'Macho', // Dato estático temporal (no viene en la función SQL actual)
+			pesoEstimado: solicitud.peso_est_kg,
 			condicion: 'Excelente',
 			crias: 'No',
-			fechaSolicitud: solicitud.fecha,
+			fechaSolicitud: fechaFormateada,
+			// Mock de certificaciones extra requeridas (esto podría venir de otra tabla después)
 			vacunaciones: [{ nombre: 'Vacunación Aftosa', aprobada: false }],
 		};
 	}, [solicitud]);
@@ -54,21 +44,29 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 	const cerrar = () => onClose();
 
 	const handleAprobar = () => {
-		console.log('Aprobar y certificar', data.id, { pesoValidado, observaciones, vacunaNombre, vacunaLote, vacunaFecha });
+		// Aquí enviaremos el data.id_bd (ID real) a Axios más adelante
+		console.log('Aprobar y certificar ID DB:', data.id_bd, { 
+			pesoValidado, 
+			observaciones, 
+			vacunaNombre, 
+			vacunaLote, 
+			vacunaFecha 
+		});
 		cerrar();
 	};
 
 	const handleRechazar = () => {
-		console.log('Rechazar certificación', data.id, { observaciones });
+		console.log('Rechazar certificación ID DB:', data.id_bd, { observaciones });
 		cerrar();
 	};
 
 	return (
 		<div className="fixed inset-0 z-50 bg-black/50 p-0 md:p-4">
-			<div className="mx-auto flex h-full w-full max-w-[1100px] flex-col overflow-hidden bg-white shadow-2xl md:h-[calc(100vh-2rem)] md:rounded-[18px]">
+			<div className="mx-auto flex h-full w-full max-w-275 flex-col overflow-hidden bg-white shadow-2xl md:h-[calc(100vh-2rem)] md:rounded-[18px]">
 				<div className="flex items-center justify-between border-b border-gray-200 px-6 py-4 md:px-8 md:py-5">
 					<div>
-						<h2 className="text-[20px] font-bold text-[#111827] md:text-[26px]">Revisión de Certificación - {data.id}</h2>
+						{/* Usamos el código de solicitud (SOL-00X) para el título */}
+						<h2 className="text-[20px] font-bold text-[#111827] md:text-[26px]">Revisión de Certificación - {data.codigo}</h2>
 						<span className="mt-2 inline-flex rounded-full bg-[#FFF1C7] px-3 py-1 text-[11px] font-semibold text-[#8B6E00] border border-[#F1DE9C]">{data.estado}</span>
 					</div>
 					<button onClick={cerrar} className="rounded-full p-2 text-[#111827] transition-colors hover:bg-gray-100" aria-label="Cerrar modal">
@@ -105,7 +103,8 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 							<div className="grid grid-cols-1 gap-y-8 gap-x-12 md:grid-cols-3">
 								<div>
 									<p className="text-[11px] text-[#6B7280]">Identificación</p>
-									<p className="mt-1 text-[14px] font-semibold text-[#111827]">{data.id}</p>
+									{/* Aquí usamos el arete_id del animal */}
+									<p className="mt-1 text-[14px] font-semibold text-[#111827]">{data.arete}</p>
 								</div>
 								<div>
 									<p className="text-[11px] text-[#6B7280]">Tipo de Animal</p>
@@ -134,7 +133,7 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Edad (años) *</span>
-									<input type="text" value={data.edad} onChange={() => {}} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+									<input type="text" defaultValue={data.edad} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Sexo *</span>

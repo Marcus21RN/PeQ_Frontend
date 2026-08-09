@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { BookText, Clock, FileText, Lock, Pencil, Stethoscope, User } from 'lucide-react';
 
 import CambiarContrasenaModal from '../../components/veterinarioComponents/cambiarContrasenaModal.jsx';
-import SolicitudesCambioModal from '../../components/veterinarioComponents/solicitudcCambioModal.jsx';
+import SolicitudesCambioModal from '../../components/veterinarioComponents/solicitudCambioModal.jsx';
 import EditarPerfilModal from '../../components/veterinarioComponents/editarPerfilModal.jsx';
 
 export default function VetPerfil() {

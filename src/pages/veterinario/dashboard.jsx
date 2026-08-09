@@ -1,58 +1,42 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, MapPin, Scale, CalendarDays, UserRound } from 'lucide-react';
 
 import RevisionCertificacionModal from '../../components/veterinarioComponents/revisionCertificacionModal.jsx';
+import { getSolicitudesPendientes } from '../../services/apiVeterinario/solicitudesPanel.js';
 
-export default function VetDasbouard() {
+export default function VetDashboard() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
+	const [solicitudes, setSolicitudes] = useState([]);
+	const [loading, setLoading] = useState(true);
 
-	const mockStats = {
-		pendientes: 6,
-	};
+	useEffect(() => {
+		const fetchSolicitudes = async () => {
+			try {
+				setLoading(true);
 
-	const mockSolicitudes = [
-		{
-			id: 'A-002',
-			nombre: 'Angus',
-			productor: 'Juan Pérez',
-			rancho: 'Rancho El Paraíso',
-			edad: '2.5 años',
-			peso: '450 kg',
-			fecha: '14 de enero de 2026',
-		},
-		{
-			id: 'A-008',
-			nombre: 'Hereford',
-			productor: 'Roberto Sánchez',
-			rancho: 'Rancho la Esperanza',
-			edad: '2 años',
-			peso: '410 kg',
-			fecha: '27 de enero de 2026',
-		},
-		{
-			id: 'B-207',
-			nombre: 'Simmental',
-			productor: 'Fernando Torres',
-			rancho: 'Traspatio',
-			edad: '1.5 años',
-			peso: '380 kg',
-			fecha: '4 de febrero de 2026',
-		},
-		{
-			id: 'A-004',
-			nombre: 'Brahman',
-			productor: 'María González',
-			rancho: 'Rancho San José',
-			edad: '3.5 años',
-			peso: '490 kg',
-			fecha: '17 de febrero de 2026',
-		},
-	];
+				const response = await getSolicitudesPendientes();
+				const solicitudesApi = Array.isArray(response) ? response : response?.data ?? [];
+				setSolicitudes(solicitudesApi);
+			} catch (error) {
+				console.error('Error al obtener solicitudes:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchSolicitudes();
+	}, []);
 
 	const handleRevisar = (solicitud) => {
 		setSolicitudSeleccionada(solicitud);
 		setIsModalOpen(true);
+	};
+
+	// Función para formatear el Timestamp de la BD a texto legible
+	const formatearFecha = (fechaISO) => {
+		const opciones = { day: 'numeric', month: 'long', year: 'numeric' };
+		return new Date(fechaISO).toLocaleDateString('es-ES', opciones);
 	};
 
 	return (
@@ -66,7 +50,9 @@ export default function VetDasbouard() {
 				<div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-sans">
 					<div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between max-w-42.5 h-24">
 						<span className="text-[11px] text-[#8C8C8C] text-center">Pendientes</span>
-						<span className="text-3xl font-bold text-[#111827] text-center leading-none">{mockStats.pendientes}</span>
+						<span className="text-3xl font-bold text-[#111827] text-center leading-none">
+							{loading ? '-' : solicitudes.length}
+						</span>
 					</div>
 				</div>
 
@@ -76,56 +62,62 @@ export default function VetDasbouard() {
 					</div>
 
 					<div className="flex flex-col">
-						{mockSolicitudes.map((solicitud, index) => (
-							<div
-								key={solicitud.id}
-								className={`px-6 py-5 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between hover:bg-[#FBFBF8] transition-colors ${
-									index !== mockSolicitudes.length - 1 ? 'border-b border-gray-100' : ''
-								}`}
-							>
-								<div className="flex-1 space-y-4">
-									<div className="flex items-center gap-3 flex-wrap">
-										<h3 className="text-lg font-bold text-[#111827]">{solicitud.id} - {solicitud.nombre}</h3>
-										<span className="inline-flex items-center rounded-full bg-[#FFF1C7] px-2.5 py-0.5 text-[10px] font-semibold text-[#8B6E00] border border-[#F1DE9C]">
-											Pendiente
-										</span>
+						{loading ? (
+							<div className="p-6 text-center text-gray-500 font-sans">Cargando solicitudes...</div>
+						) : (
+							solicitudes.map((solicitud, index) => (
+								<div
+									key={solicitud.id_solicitud}
+									className={`px-6 py-5 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between hover:bg-[#FBFBF8] transition-colors ${
+										index !== solicitudes.length - 1 ? 'border-b border-gray-100' : ''
+									}`}
+								>
+									<div className="flex-1 space-y-4">
+										<div className="flex items-center gap-3 flex-wrap">
+											<h3 className="text-lg font-bold text-[#111827]">
+												{solicitud.arete_id} - {solicitud.raza}
+											</h3>
+											<span className="inline-flex items-center rounded-full bg-[#FFF1C7] px-2.5 py-0.5 text-[10px] font-semibold text-[#8B6E00] border border-[#F1DE9C]">
+												{solicitud.estado_solicitud}
+											</span>
+										</div>
+
+										<div className="grid grid-cols-1 gap-3 text-[11px] text-[#3E4954] md:grid-cols-4 md:gap-4">
+											<div className="flex items-center gap-2">
+												<UserRound className="h-4 w-4 text-[#A0A0A0]" />
+												<span>Productor: {solicitud.nombre_productor}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<MapPin className="h-4 w-4 text-[#A0A0A0]" />
+												<span>Rancho: {solicitud.rancho}</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<CalendarDays className="h-4 w-4 text-[#A0A0A0]" />
+												<span>Edad: {solicitud.edad_anios} años</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<Scale className="h-4 w-4 text-[#A0A0A0]" />
+												<span>Peso Est.: {solicitud.peso_est_kg} kg</span>
+											</div>
+										</div>
+
+										<div className="text-[10px] text-[#8C8C8C]">
+											Solicitado el {formatearFecha(solicitud.fecha_solicitud)}
+										</div>
 									</div>
 
-									<div className="grid grid-cols-1 gap-3 text-[11px] text-[#3E4954] md:grid-cols-4 md:gap-4">
-										<div className="flex items-center gap-2">
-											<UserRound className="h-4 w-4 text-[#A0A0A0]" />
-											<span>Productor: {solicitud.productor}</span>
-										</div>
-										<div className="flex items-center gap-2">
-											<MapPin className="h-4 w-4 text-[#A0A0A0]" />
-											<span>Rancho: {solicitud.rancho}</span>
-										</div>
-										<div className="flex items-center gap-2">
-											<CalendarDays className="h-4 w-4 text-[#A0A0A0]" />
-											<span>Edad: {solicitud.edad}</span>
-										</div>
-										<div className="flex items-center gap-2">
-											<Scale className="h-4 w-4 text-[#A0A0A0]" />
-											<span>Peso Est.: {solicitud.peso}</span>
-										</div>
-									</div>
-
-									<div className="text-[10px] text-[#8C8C8C]">
-										Solicitado el {solicitud.fecha}
+									<div className="flex justify-start lg:justify-end">
+										<button
+											onClick={() => handleRevisar(solicitud)}
+											className="inline-flex items-center gap-2 rounded-lg border border-[#1F5E16] bg-[#2E6B2C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#235322]"
+										>
+											<Eye className="h-4 w-4" />
+											Revisar
+										</button>
 									</div>
 								</div>
-
-								<div className="flex justify-start lg:justify-end">
-									<button
-										onClick={() => handleRevisar(solicitud)}
-										className="inline-flex items-center gap-2 rounded-lg border border-[#1F5E16] bg-[#2E6B2C] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#235322]"
-									>
-										<Eye className="h-4 w-4" />
-										Revisar
-									</button>
-								</div>
-							</div>
-						))}
+							))
+						)}
 					</div>
 				</div>
 			</div>
