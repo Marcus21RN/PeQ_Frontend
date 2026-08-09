@@ -3,7 +3,7 @@ import { Search, Filter, Eye, ChevronDown, X } from 'lucide-react';
 
 import RevisionCertificacionModal from '../../components/veterinarioComponents/revisionCertificacionModal.jsx';
 import RevisionCertificacionRechazada from '../../components/veterinarioComponents/revisionCertificacionRechazada.jsx';
-import RevisionCertificacionAprobada from '../../components/veterinarioComponents/revision certificacionAprobada.jsx';
+import RevisionCertificacionAprobada from '../../components/veterinarioComponents/revisionCertificacionAprobada.jsx';
 
 const mockStats = {
 	todas: 10,
