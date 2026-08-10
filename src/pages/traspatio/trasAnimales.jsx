@@ -1,88 +1,172 @@
-/* eslint-disable no-unused-vars */
-
-// src/pages/comercial/MisAnimales.jsx
-import { useState, useEffect } from 'react';
-import { Search, Filter, Eye, FileText, Edit2, Plus } from 'lucide-react';
+// src/pages/traspatio/trasAnimales.jsx
+import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Search, Filter, Eye, Edit2, Plus } from 'lucide-react';
 import ModalDetalleAnimal from '../../components/comercialComponents/detalleAnimalModal.jsx';
 import ModalRegistrarAnimal from '../../components/comercialComponents/registrarAnimalModal.jsx';
 import ModalEditarAnimal from '../../components/comercialComponents/editarAnimalModal.jsx';
+import { getAnimalesProductor } from '../../services/apiTraspatio/animalesProductor';
 
 export default function MisAnimales() {
-  // Estados para los modales
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Modales
   const [isDetalleModalOpen, setIsDetalleModalOpen] = useState(false);
   const [isRegistrarModalOpen, setIsRegistrarModalOpen] = useState(false);
   const [isEditarModalOpen, setIsEditarModalOpen] = useState(false);
   
-  // Estados para los datos seleccionados
   const [animalSeleccionadoId, setAnimalSeleccionadoId] = useState(null);
   const [animalParaEditar, setAnimalParaEditar] = useState(null);
 
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const [animales, setAnimales] = useState([]);
-  // useEffect(() => {
-  //   const fetchAnimales = async () => {
-  //     const res = await api.get('/comercial/animales');
-  //     setAnimales(res.data);
-  //   };
-  //   fetchAnimales();
-  // }, []);
+  // Estados API
+  const [animales, setAnimales] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('');
 
-  // DATOS SIMULADOS (MOCK DATA)
-  const mockFiltros = [
-    { label: 'Bovinos', value: 3, color: 'text-green-600' },
-    { label: 'Porcinos', value: 1, color: 'text-orange-500' },
-    { label: 'Ovinos', value: 1, color: 'text-green-600' },
-    { label: 'Caprinos', value: 1, color: 'text-[#3B2211]' },
-    { label: 'Equinos', value: 1, color: 'text-blue-500' },
-    { label: 'Avícolas', value: 1, color: 'text-yellow-500' },
-  ];
+  // Función para recargar lista sin invocar setLoading(true) síncrono
+  const cargarAnimalesSinSpinner = async () => {
+    try {
+      const data = await getAnimalesProductor({ skip: 0, limit: 200 });
+      setAnimales(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando animales:', err);
+    }
+  };
 
-  const mockAnimales = [
-    { id: 'BOV-001', tipo: 'Bovino', raza: 'Holstein', edad: '3 años', peso: '520 kg', estado: 'Certificado', precio: '$28,600', fecha: '14/1/2025' },
-    { id: 'BOV-002', tipo: 'Bovino', raza: 'Angus', edad: '2.5 años', peso: '450 kg', estado: 'En Revisión', precio: '$24,750', fecha: '9/2/2025' },
-    { id: 'BOV-003', tipo: 'Bovino', raza: 'Jersey', edad: '4 años', peso: '380 kg', estado: 'Certificado', precio: '$20,900', fecha: '19/1/2025' },
-    { id: 'POR-001', tipo: 'Porcino', raza: 'Duroc', edad: '1.5 años', peso: '180 kg', estado: 'Pendiente', precio: 'N/A', fecha: '17/2/2025', doc: true },
-    { id: 'OVI-001', tipo: 'Ovino', raza: 'Merino', edad: '2 años', peso: '65 kg', estado: 'Certificado', precio: '$3,575', fecha: '4/2/2025' },
-    { id: 'CAP-001', tipo: 'Caprino', raza: 'Saanen', edad: '1.5 años', peso: '55 kg', estado: 'En Revisión', precio: 'N/A', fecha: '28/2/2025' },
-    { id: 'EQU-001', tipo: 'Equino', raza: 'Cuarto de Milla', edad: '5 años', peso: '450 kg', estado: 'Certificado', precio: '$45,000', fecha: '9/1/2025' },
-    { id: 'AVE-001', tipo: 'Avícola', raza: 'Rhode Island', edad: '0.5 años', peso: '2.5 kg', estado: 'Certificado', precio: '$125', fecha: '19/2/2025' }
-  ];
+  // Carga inicial de datos
+  useEffect(() => {
+    let isMounted = true;
 
-  // Controladores de apertura de modales
-  const abrirDetalle = (id) => {
-    setAnimalSeleccionadoId(id);
+    getAnimalesProductor({ skip: 0, limit: 200 })
+      .then((data) => {
+        if (isMounted) {
+          setAnimales(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((err) => {
+        console.error('Error cargando animales del productor:', err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Debounce input búsqueda
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchText.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchText]);
+
+  // Conteo tarjetas superiores
+  const tipoCounts = useMemo(() => {
+    const map = {};
+    animales.forEach((a) => {
+      const tipo = a.tipo_animal || a.tipo || 'Desconocido';
+      map[tipo] = (map[tipo] || 0) + 1;
+    });
+    return Object.keys(map).map((k) => ({ label: k, value: map[k] }));
+  }, [animales]);
+
+  // Filtrado de la tabla
+  const animalesFiltrados = useMemo(() => {
+    if (!animales || animales.length === 0) return [];
+
+    const tipoFiltroClean = (searchParams.get('tipo') || '').toLowerCase();
+    const estadoFiltroClean = estadoFiltro.toLowerCase();
+    const searchClean = debouncedSearch.toLowerCase();
+
+    return animales.filter((a) => {
+      const tipo = (a.tipo_animal || a.tipo || '').toString().toLowerCase();
+      const raza = (a.raza || '').toString().toLowerCase();
+      const id = (a.id_animal || a.id || '').toString().toLowerCase();
+      const arete = (a.arete_id || '').toString().toLowerCase();
+      const estado = (a.estado_certificacion || a.estado || '').toString().toLowerCase();
+
+      if (tipoFiltroClean && !tipo.includes(tipoFiltroClean)) {
+        return false;
+      }
+
+      if (estadoFiltroClean && !estado.includes(estadoFiltroClean)) {
+        return false;
+      }
+
+      if (searchClean && !(id.includes(searchClean) || raza.includes(searchClean) || arete.includes(searchClean))) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [animales, searchParams, estadoFiltro, debouncedSearch]);
+
+  const handleSelectTipo = (label) => {
+    const actual = (searchParams.get('tipo') || '').toLowerCase();
+    setSearchParams((prev) => {
+      if (actual === label.toLowerCase()) {
+        prev.delete('tipo');
+      } else {
+        prev.set('tipo', label);
+      }
+      return prev;
+    });
+  };
+
+  const abrirDetalle = (areteOrId) => {
+    setAnimalSeleccionadoId(areteOrId);
     setIsDetalleModalOpen(true);
   };
 
   const abrirEditar = (animalRow) => {
-    // Mapeamos los datos básicos de la fila para inyectarlos en el modal de edición
+    const idDisplay = animalRow.id || animalRow.id_animal;
+    const raza = animalRow.raza || '';
+    const tipo = animalRow.tipo || animalRow.tipo_animal || '';
+    const edad = animalRow.edad || (animalRow.edad_anios != null ? `${animalRow.edad_anios} años` : '');
+    const peso = animalRow.peso || (animalRow.peso_kg != null ? `${animalRow.peso_kg} kg` : '');
+
     setAnimalParaEditar({
-      id_display: animalRow.id,
-      nombre: `${animalRow.raza} 001`, // Nombre simulado
-      sexo: 'Hembra', // Dato simulado por defecto
-      edad: animalRow.edad.replace(' años', ''),
-      peso: animalRow.peso.replace(' kg', ''),
+      id_display: idDisplay,
+      nombre: `${raza} 001`,
+      sexo: 'Hembra',
+      edad: edad.replace(' años', ''),
+      peso: peso.replace(' kg', ''),
       condicion: 'Bueno',
       proposito: 'Producción',
       tipo_produccion: 'Engorda',
       lote: 'Lote Principal',
-      origen: 'Granja San José, Michoacán',
-      tipo: animalRow.tipo,
-      raza: animalRow.raza
+      origen: 'Granja San José',
+      tipo,
+      raza,
     });
     setIsEditarModalOpen(true);
   };
 
-  const getEstadoBadge = (estado) => {
-    switch(estado) {
-      case 'Certificado': return <span className="bg-[#EAF3E6] text-[#5C743D] px-3 py-1 rounded-full text-xs font-bold">Certificado</span>;
-      case 'En Revisión': return <span className="bg-[#FFF4E5] text-[#D97706] px-3 py-1 rounded-full text-xs font-bold">En Revisión</span>;
-      case 'Pendiente': return <span className="bg-[#F0F2E8] text-[#7A8A61] px-3 py-1 rounded-full text-xs font-bold">Pendiente</span>;
-      default: return null;
-    }
+  const limpiarFiltros = () => {
+    setSearchText('');
+    setDebouncedSearch('');
+    setEstadoFiltro('');
+    setSearchParams({});
   };
+
+  const getEstadoBadge = (estado) => {
+    if (!estado) return null;
+    const e = String(estado).toLowerCase();
+    if (e.includes('cert') || e.includes('registr') || e.includes('aprob')) 
+      return <span className="bg-[#EAF3E6] text-[#5C743D] px-3 py-1 rounded-full text-xs font-bold">Certificado</span>;
+    if (e.includes('rev') || e.includes('revis')) 
+      return <span className="bg-[#FFF4E5] text-[#D97706] px-3 py-1 rounded-full text-xs font-bold">En Revisión</span>;
+    if (e.includes('pend')) 
+      return <span className="bg-[#F0F2E8] text-[#7A8A61] px-3 py-1 rounded-full text-xs font-bold">Pendiente</span>;
+    return <span className="bg-[#F5F5F5] text-gray-700 px-3 py-1 rounded-full text-xs">{estado}</span>;
+  };
+
+  const tipoActual = (searchParams.get('tipo') || '').toLowerCase();
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 font-serif pb-10">
@@ -92,33 +176,56 @@ export default function MisAnimales() {
         <p className="text-gray-500 mt-2 font-sans">Gestiona y consulta el estado de tus animales registrados</p>
       </div>
 
-      {/* Cajas Superiores (Filtros Rápidos) */}
+      {/* Cajas Superiores por Especie */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 font-sans">
-        {mockFiltros.map((f, i) => (
-          <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 text-center shadow-sm cursor-pointer hover:bg-gray-50">
-            <p className="text-xs text-gray-500 mb-1">{f.label}</p>
-            <p className={`text-xl font-bold ${f.color}`}>{f.value}</p>
-          </div>
-        ))}
+        {tipoCounts.length === 0 ? (
+          <div className="col-span-6 text-gray-500">No hay tipos registrados</div>
+        ) : (
+          tipoCounts.map((f, i) => (
+            <button
+              key={i}
+              onClick={() => handleSelectTipo(f.label)}
+              className={`rounded-xl p-4 text-center shadow-sm border ${
+                tipoActual === f.label.toLowerCase() ? 'border-[#3B2211] bg-[#F3F6F1]' : 'border-gray-200 bg-white'
+              } hover:bg-gray-50 transition-colors`}
+            >
+              <p className="text-xs text-gray-500 mb-1">{f.label}</p>
+              <p className="text-xl font-bold text-[#3B2211]">{f.value}</p>
+            </button>
+          ))
+        )}
       </div>
 
-      {/* Buscador y Controles */}
+      {/* Buscador y Filtros */}
       <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col md:flex-row gap-4 font-sans shadow-sm">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-          <input type="text" placeholder="Buscar por ID o raza..." className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5C743D] outline-none text-sm" />
+          <input
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            type="text"
+            placeholder="Buscar por ID, Arete o raza..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5C743D] outline-none text-sm"
+          />
         </div>
-        <select className="border border-gray-200 text-gray-700 py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5C743D] text-sm md:w-48 bg-white cursor-pointer">
-          <option>Todos los estados</option>
-          <option>Certificados</option>
-          <option>En Revisión</option>
+        
+        <select
+          value={estadoFiltro}
+          onChange={(e) => setEstadoFiltro(e.target.value)}
+          className="border border-gray-200 text-gray-700 py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5C743D] text-sm md:w-48 bg-white cursor-pointer"
+        >
+          <option value="">Todos los estados</option>
+          <option value="apr">Aprobado</option>
+          <option value="cert">Certificado</option>
+          <option value="rev">En Revisión</option>
+          <option value="pend">Pendiente</option>
+          <option value="rechaz">Rechazado</option>
         </select>
         
-        <button className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
-          <Filter className="w-4 h-4" /> Limpiar
+        <button onClick={limpiarFiltros} className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors">
+          <Filter className="w-4 h-4" /> Limpiar Filtros
         </button>
         
-        {/* Botón principal para Registrar Nuevo Animal */}
         <button 
           onClick={() => setIsRegistrarModalOpen(true)}
           className="bg-[#3B2211] hover:bg-[#2A180C] text-white px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm"
@@ -145,54 +252,76 @@ export default function MisAnimales() {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#E8ECE1]">
-              {mockAnimales.map((a) => (
-                <tr key={a.id} className="hover:bg-white transition-colors">
-                  <td className="px-6 py-4 font-bold text-[#3B2211] font-serif">{a.id}</td>
-                  <td className="px-6 py-4">{a.tipo}</td>
-                  <td className="px-6 py-4">{a.raza}</td>
-                  <td className="px-6 py-4">{a.edad}</td>
-                  <td className="px-6 py-4">{a.peso}</td>
-                  <td className="px-6 py-4">{getEstadoBadge(a.estado)}</td>
-                  <td className="px-6 py-4 font-semibold">{a.precio}</td>
-                  <td className="px-6 py-4 text-gray-500">{a.fecha}</td>
-                  <td className="px-6 py-4">
-                    <div className="flex justify-center items-center gap-3">
-                      {/* Ver Detalles */}
-                      <button onClick={() => abrirDetalle(a.id)} className="text-[#5C743D] hover:text-[#3B2211] transition-colors" title="Ver Detalles">
-                        <Eye className="w-5 h-5" />
-                      </button>
-                      
-                      {/* Editar */}
-                      <button onClick={() => abrirEditar(a)} className="text-[#D97706] hover:text-[#3B2211] transition-colors" title="Editar Animal">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                    
-                    </div>
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-8 text-center text-gray-500">Cargando animales...</td>
                 </tr>
-              ))}
+              ) : animalesFiltrados.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-6 py-8 text-center text-gray-500">No se encontraron animales para el filtro seleccionado.</td>
+                </tr>
+              ) : (
+                animalesFiltrados.map((a) => (
+                  <tr key={a.id_animal || a.id} className="hover:bg-white transition-colors">
+                    <td className="px-6 py-4 font-bold text-[#3B2211] font-serif">{a.arete_id || a.id_animal || a.id}</td>
+                    <td className="px-6 py-4">{a.tipo_animal || a.tipo}</td>
+                    <td className="px-6 py-4">{a.raza}</td>
+                    <td className="px-6 py-4">{a.edad_anios != null ? `${a.edad_anios} años` : (a.edad || 'N/A')}</td>
+                    <td className="px-6 py-4">{a.peso_kg != null ? `${a.peso_kg} kg` : (a.peso || 'N/A')}</td>
+                    <td className="px-6 py-4">{getEstadoBadge(a.estado_certificacion || a.estado)}</td>
+                    <td className="px-6 py-4 font-semibold">
+                      {a.precio_estimado != null ? `$${Number(a.precio_estimado).toLocaleString('es-MX')}` : (a.precio || 'N/A')}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {a.fecha_registro ? new Date(a.fecha_registro).toLocaleDateString('es-MX') : (a.fecha || '-')}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex justify-center items-center gap-3">
+                        <button 
+                          onClick={() => abrirDetalle(a.arete_id || a.id_animal || a.id)} 
+                          className="text-[#5C743D] hover:text-[#3B2211] transition-colors" 
+                          title="Ver Detalles"
+                        >
+                          <Eye className="w-5 h-5" />
+                        </button>
+                        <button 
+                          onClick={() => abrirEditar(a)} 
+                          className="text-[#D97706] hover:text-[#3B2211] transition-colors" 
+                          title="Editar Animal"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* KPI Footer */}
+      {/* Tarjetas Inferiores de KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans">
         <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
           <p className="text-sm text-gray-500 mb-1 font-serif">Total Registrados</p>
-          <p className="text-3xl font-bold text-[#3B2211] font-serif">8</p>
+          <p className="text-3xl font-bold text-[#3B2211] font-serif">{animales.length}</p>
         </div>
         <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
           <p className="text-sm text-gray-500 mb-1 font-serif">Certificados</p>
-          <p className="text-3xl font-bold text-[#5C743D] font-serif">5</p>
+          <p className="text-3xl font-bold text-[#5C743D] font-serif">
+            {animales.filter(a => String(a.estado_certificacion || a.estado || '').toLowerCase().includes('cert') || String(a.estado_certificacion || a.estado || '').toLowerCase().includes('registr') || String(a.estado_certificacion || a.estado || '').toLowerCase().includes('aprob')).length}
+          </p>
         </div>
         <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
           <p className="text-sm text-gray-500 mb-1 font-serif">En Revisión</p>
-          <p className="text-3xl font-bold text-[#D97706] font-serif">2</p>
+          <p className="text-3xl font-bold text-[#D97706] font-serif">
+            {animales.filter(a => String(a.estado_certificacion || a.estado || '').toLowerCase().includes('rev')).length}
+          </p>
         </div>
       </div>
 
-      {/* Renderizado de todos los Modales */}
+      {/* Modales */}
       <ModalDetalleAnimal 
         isOpen={isDetalleModalOpen}
         onClose={() => setIsDetalleModalOpen(false)}
@@ -202,6 +331,7 @@ export default function MisAnimales() {
       <ModalRegistrarAnimal 
         isOpen={isRegistrarModalOpen}
         onClose={() => setIsRegistrarModalOpen(false)}
+        onRegistrado={cargarAnimalesSinSpinner}
       />
       
       <ModalEditarAnimal 
@@ -209,6 +339,7 @@ export default function MisAnimales() {
         onClose={() => setIsEditarModalOpen(false)}
         animalId={animalParaEditar?.id_display}
         dataActual={animalParaEditar}
+        onActualizado={cargarAnimalesSinSpinner}
       />
 
     </div>

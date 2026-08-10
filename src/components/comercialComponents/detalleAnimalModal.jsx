@@ -1,207 +1,299 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-
-// src/components/comercialComponents/detalleAnimalModal.jsx
-import { useEffect, useState } from 'react';
-import { X, Edit2, FileText, Calendar, MapPin, Heart, Book, User, Phone, Stethoscope, Clock, ShieldCheck, Image as ImageIcon } from 'lucide-react';
+/* eslint-disable no-unused-vars */
+import { useState, useEffect } from 'react';
+import { 
+  X, Edit3, Scale, Calendar, Heart, 
+  MapPin, User, Phone, ShieldCheck, 
+  FileText, Syringe, Image as ImageIcon 
+} from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { getFichaTecnicaAnimal } from '../../services/apiTraspatio/fichaTecnica';
 
 export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
-  const [data, setData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [ficha, setFicha] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // useEffect(() => {
-  //   if (!isOpen || !animalId) return;
-  //   const fetchAnimal = async () => {
-  //     setIsLoading(true);
-  //     try {
-  //       const res = await api.get(`/comercial/animales/${animalId}`);
-  //       setData(res.data);
-  //     } catch (error) { console.error(error); } finally { setIsLoading(false); }
-  //   };
-  //   fetchAnimal();
-  // }, [isOpen, animalId]);
-
-  // DATOS SIMULADOS (MOCK DATA)
   useEffect(() => {
-    if (!isOpen) return;
-    setIsLoading(true);
-    const timer = setTimeout(() => {
-      setData({
-        id: 'POR-002',
-        nombre: 'Yorkshire 002',
-        raza: 'Yorkshire',
-        sexo: 'Hembra',
-        peso: '120 kg',
-        edad: '1 años',
-        proposito: 'Desarrollo',
-        condicion: 'Bueno',
-        produccion: 'Engorda',
-        crias: 'No',
-        origen: 'Granja San José, Michoacán',
-        fechaRegistro: '8 de noviembre de 2025',
-        precio: '8,500',
-        estadoCertificacion: 'Certificado ✓',
-        ultimaActualizacion: '14 de febrero de 2026',
-        productor: {
-          rancho: 'Granja San José',
-          tipo: 'Comercial',
-          propietario: 'Ana María López Hernández',
-          contacto: '+52 44 4567 8901',
-          ubicacion: 'Michoacán, México'
-        },
-        veterinario: {
-          nombre: 'Dra. Ana Martínez',
-          cedula: 'CED-VET-0974321',
-          fechaCert: '13/02/2026',
-          proximaRev: '13/05/2026'
+    if (isOpen && animalId) {
+      const fetchFicha = async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          const data = await getFichaTecnicaAnimal(animalId);
+          setFicha(data);
+        } catch (err) {
+          console.error('Error al cargar la ficha técnica:', err);
+          setError('No se pudo obtener la ficha técnica del animal.');
+        } finally {
+          setLoading(false);
         }
-      });
-      setIsLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
+      };
+      fetchFicha();
+    }
   }, [isOpen, animalId]);
 
   if (!isOpen) return null;
 
+  // Formateador de fecha
+  const formatDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-MX', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/60 backdrop-blur-sm p-4 animate-in fade-in" onClick={onClose}>
-      <div className="bg-[#F8F9FA] rounded-2xl w-full max-w-6xl max-h-[95vh] flex flex-col font-serif shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 md:p-4 font-sans backdrop-blur-xs">
+      <div className="relative flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
         
-        {/* Cabecera Oscura */}
-        <div className="bg-[#3B2211] p-5 flex items-center justify-between shrink-0">
+        {/* ENCABEZADO PRINCIPAL (CAFÉ OBSCURO) */}
+        <div className="flex items-center justify-between bg-[#2C1405] px-8 py-5 text-white">
           <div>
-            <h2 className="text-xl font-bold text-white tracking-wide">Sistema de Regulación y Control de Ganado</h2>
-            <p className="text-yellow-600/90 text-sm font-sans">Verifica, confía y compra</p>
+            <h2 className="font-serif text-2xl font-bold tracking-wide">Sistema de Regulación y Control de Ganado</h2>
+            <p className="font-sans text-xs text-amber-100/80">Verifica, confía y compra</p>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-white transition-colors bg-white/5">
-            <X className="w-5 h-5" />
+          <button 
+            onClick={onClose} 
+            className="rounded-lg bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+          >
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Contenido (Grid de 2 columnas) */}
-        <div className="overflow-y-auto p-6 flex-1 font-sans">
-          {isLoading ? (
-            <div className="h-40 flex items-center justify-center text-gray-500">Cargando ficha técnica...</div>
+        {/* CUERPO DEL MODAL */}
+        <div className="overflow-y-auto p-6 md:p-8">
+          {loading ? (
+            <div className="py-20 text-center font-serif text-gray-500">Cargando ficha técnica...</div>
+          ) : error || !ficha ? (
+            <div className="py-20 text-center font-serif text-red-600">{error || 'No hay datos disponibles.'}</div>
           ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
               
-              {/* COLUMNA IZQUIERDA (Info Principal) */}
-              <div className="lg:col-span-2 space-y-6">
+              {/* COLUMNA IZQUIERDA (INFORMACIÓN GENERAL Y CERTIFICACIONES) */}
+              <div className="space-y-6 lg:col-span-8">
                 
-                {/* Tarjeta 1: Info Básica */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex justify-between items-start mb-6">
+                {/* 1. Tarjeta Datos Base */}
+                <div className="rounded-2xl border border-gray-200/80 bg-[#FCFCF9] p-6 shadow-2xs">
+                  <div className="flex items-start justify-between">
                     <div>
-                      <h3 className="text-2xl font-bold text-gray-900 font-serif">{data.nombre}</h3>
-                      <p className="text-gray-500 text-sm mt-1">{data.raza} · {data.sexo}</p>
+                      <h1 className="font-serif text-2xl font-bold text-[#2C1405]">
+                        {ficha.raza} {ficha.no_identificacion ? ficha.no_identificacion.slice(-3) : '001'}
+                      </h1>
+                      <p className="text-sm font-medium text-gray-400">
+                        {ficha.raza} · {ficha.sexo === 'H' || ficha.sexo?.toLowerCase().includes('hem') ? 'Hembra' : 'Macho'}
+                      </p>
                     </div>
-                    <div className="flex gap-2">
-                      <span className="bg-[#A4B15C] text-white px-4 py-1.5 rounded-lg text-sm font-bold tracking-wide">Bueno</span>
-                      <button className="bg-[#5C743D] hover:bg-[#4A5D31] text-white p-2 rounded-lg transition-colors"><Edit2 className="w-4 h-4" /></button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 border-b border-gray-100 pb-6 mb-6">
-                    <div className="flex items-start gap-3">
-                      <FileText className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">No. de identificación</p><p className="font-bold text-gray-900">{data.id}</p></div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <ShieldCheck className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Peso</p><p className="font-bold text-gray-900">{data.peso}</p></div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-                      <div><p className="text-xs text-gray-500">Edad</p><p className="font-bold text-gray-900">{data.edad}</p></div>
+                    
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-lg bg-[#A0B050] px-4 py-1.5 font-serif text-sm font-semibold text-white">
+                        {ficha.condicion_general || 'Bueno'}
+                      </span>
+                      <button className="rounded-lg bg-[#5B6E38] p-2 text-white transition-colors hover:bg-[#48582C]">
+                        <Edit3 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-y-6 border-b border-gray-100 pb-6 mb-6">
-                    <div><p className="text-xs text-gray-500 mb-1">Propósito de Venta</p><span className="bg-[#B9C675] text-[#3B2211] px-3 py-1 rounded-md text-xs font-bold">{data.proposito}</span></div>
-                    <div><p className="text-xs text-gray-500 mb-1">Condición</p><span className="bg-[#B9C675] text-[#3B2211] px-3 py-1 rounded-md text-xs font-bold">{data.condicion}</span></div>
+                  <div className="mt-6 grid grid-cols-3 gap-4 border-b border-gray-100 pb-6 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">No. de identificación</p>
+                      <p className="font-serif text-base font-bold text-[#2C1405]">{ficha.no_identificacion}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Peso</p>
+                      <p className="font-serif text-base font-bold text-[#2C1405]">{ficha.peso_kg} kg</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Edad</p>
+                      <p className="font-serif text-base font-bold text-[#2C1405]">{ficha.edad} años</p>
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-y-6">
-                    <div className="flex gap-3"><MapPin className="w-5 h-5 text-[#5C743D]" /><div><p className="text-xs text-gray-500">Tipo de Producción</p><p className="font-medium text-[#5C743D]">{data.produccion}</p></div></div>
-                    <div className="flex gap-3"><Heart className="w-5 h-5 text-green-500" /><div><p className="text-xs text-gray-500">Con Crías</p><p className="font-medium text-gray-900">{data.crias}</p></div></div>
-                    <div className="flex gap-3"><MapPin className="w-5 h-5 text-gray-400" /><div><p className="text-xs text-gray-500">Origen</p><p className="font-medium text-gray-900">{data.origen}</p></div></div>
-                    <div className="flex gap-3"><Calendar className="w-5 h-5 text-gray-400" /><div><p className="text-xs text-gray-500">Fecha de Registro</p><p className="font-medium text-gray-900">{data.fechaRegistro}</p></div></div>
+                  <div className="grid grid-cols-2 gap-4 border-b border-gray-100 py-4 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Propósito de Venta</p>
+                      <span className="mt-1 inline-block rounded-lg bg-[#A0B050] px-3 py-1 text-xs font-semibold text-white">
+                        {ficha.proposito_produccion || 'Desarrollo'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Condición</p>
+                      <span className="mt-1 inline-block rounded-lg bg-[#A0B050] px-3 py-1 text-xs font-semibold text-white">
+                        {ficha.condicion_general || 'Bueno'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-b border-gray-100 py-4 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Tipo de Producción</p>
+                      <p className="font-serif font-bold text-[#2C1405]">Engorda</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Con Crías</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.tiene_crias ? 'Sí' : 'No'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 pt-4 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Origen</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.nombre_rancho}, {ficha.ubicacion_origen || 'Michoacán'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Fecha de Registro</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{formatDate(ficha.fecha_registro)}</p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Tarjeta 2: Certificaciones */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex gap-2 items-center mb-4 font-serif text-lg font-bold text-gray-900"><Book className="w-5 h-5 text-[#5C743D]" /> Certificaciones</div>
-                  <div className="flex gap-2 mb-4">
-                    <span className="bg-[#5C743D] text-white px-3 py-1 rounded-md text-sm">Activo</span>
-                    <span className="bg-[#5C743D] text-white px-3 py-1 rounded-md text-sm">Certificación Sanitaria</span>
+                {/* 2. Tarjeta Certificaciones */}
+                <div className="rounded-2xl border border-gray-200/80 bg-[#FCFCF9] p-6 shadow-2xs">
+                  <h3 className="font-serif text-lg font-bold text-[#2C1405]">Certificaciones</h3>
+                  <div className="mt-3 flex gap-2">
+                    <span className="rounded-lg bg-[#5B6E38] px-3 py-1 text-xs font-semibold text-white">Activo</span>
+                    <span className="rounded-lg bg-[#5B6E38] px-3 py-1 text-xs font-semibold text-white">Certificación Sanitaria</span>
                   </div>
-                  <button className="w-full py-3 bg-[#5C743D] hover:bg-[#4A5D31] text-white rounded-lg font-bold text-sm transition-colors">Libro de actas Permisos Oficiales</button>
-                </div>
-
-                {/* Tarjeta 3: Productor */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex gap-2 items-center mb-6 font-serif text-lg font-bold text-gray-900"><User className="w-5 h-5 text-[#5C743D]" /> Información del Productor</div>
-                  <div className="grid grid-cols-2 gap-y-6">
-                    <div><p className="text-xs text-gray-500">Nombre del Rancho</p><p className="font-medium text-[#5C743D]">{data.productor.rancho}</p></div>
-                    <div><p className="text-xs text-gray-500 mb-1">Tipo de Rancho</p><span className="bg-[#5C743D] text-white px-3 py-1 rounded-full text-xs">{data.productor.tipo}</span></div>
-                    <div><p className="text-xs text-gray-500">Propietario</p><p className="font-medium text-gray-900">{data.productor.propietario}</p></div>
-                    <div className="flex gap-2 items-center"><Phone className="w-4 h-4 text-gray-400"/><p className="font-medium text-gray-900">{data.productor.contacto}</p></div>
-                    <div className="col-span-2"><p className="text-xs text-gray-500">Ubicación</p><p className="font-medium text-[#5C743D]">{data.productor.ubicacion}</p></div>
+                  <div className="mt-4 rounded-xl bg-[#5B6E38] py-3 text-center text-sm font-semibold text-white">
+                    Libro de actas Permisos Oficiales
                   </div>
                 </div>
 
-                {/* Tarjeta 4: Veterinaria */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                  <div className="flex gap-2 items-center mb-6 font-serif text-lg font-bold text-gray-900"><Stethoscope className="w-5 h-5 text-[#5C743D]" /> Certificación Veterinaria</div>
-                  <div className="grid grid-cols-2 gap-y-6">
-                    <div><p className="text-xs text-gray-500">Certificado por</p><p className="font-medium text-[#5C743D]">{data.veterinario.nombre}</p></div>
-                    <div><p className="text-xs text-gray-500">Cédula Profesional</p><p className="font-medium text-gray-900">{data.veterinario.cedula}</p></div>
-                    <div><p className="text-xs text-gray-500">Fecha de Certificación</p><p className="font-medium text-gray-900">{data.veterinario.fechaCert}</p></div>
-                    <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-red-500"/><div><p className="text-xs text-gray-500">Próxima Revisión</p><p className="font-medium text-gray-900">{data.veterinario.proximaRev}</p></div></div>
+                {/* 3. Tarjeta Información del Productor */}
+                <div className="rounded-2xl border border-gray-200/80 bg-[#FCFCF9] p-6 shadow-2xs">
+                  <h3 className="font-serif text-lg font-bold text-[#2C1405]">Información del Productor</h3>
+                  <div className="mt-4 grid grid-cols-2 gap-6 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Nombre del Rancho</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.nombre_rancho}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Tipo de Rancho</p>
+                      <span className="mt-1 inline-block rounded-lg bg-[#5B6E38] px-3 py-0.5 text-xs font-semibold text-white">
+                        {ficha.tipo_rancho || 'Comercial'}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Propietario</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.propietario}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Contacto</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.contacto_propietario || '+52 44 4567 8901'}</p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-xs font-semibold text-gray-400">Ubicación</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.ubicacion_origen || 'Michoacán, México'}</p>
+                    </div>
                   </div>
                 </div>
+
+                {/* 4. Tarjeta Certificación Veterinaria */}
+                <div className="rounded-2xl border border-gray-200/80 bg-[#FCFCF9] p-6 shadow-2xs">
+                  <h3 className="font-serif text-lg font-bold text-[#2C1405]">Certificación Veterinaria</h3>
+                  <div className="mt-3 flex gap-2">
+                    <span className="rounded-lg bg-[#5B6E38] px-3 py-1 text-xs font-semibold text-white">Activo</span>
+                    <span className="rounded-lg bg-[#5B6E38] px-3 py-1 text-xs font-semibold text-white">Certificación Sanitaria</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-6 text-sm">
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Certificado por</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.certificado_por || 'Dra. Ana Martínez'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Cédula Profesional</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.cedula_profesional || 'CED-VET-0974321'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Fecha de Certificación</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{formatDate(ficha.fecha_certificacion) || '13/02/2026'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-400">Próxima Revisión</p>
+                      <p className="font-serif font-bold text-red-600">{formatDate(ficha.proxima_revision_sugerida) || '13/05/2026'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 5. Historial de Vacunación */}
+                <div className="rounded-2xl border border-gray-200/80 bg-[#FCFCF9] p-6 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-serif text-lg font-bold text-[#2C1405]">Historial de Vacunación</h3>
+                    <button className="rounded-xl border border-[#5B6E38] px-4 py-1.5 font-sans text-xs font-semibold text-[#5B6E38] transition-colors hover:bg-[#5B6E38] hover:text-white">
+                      Ver Historial Completo
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs font-medium text-gray-400">
+                    {ficha.enfermedades?.length || 1} vacunación(es) registrada(s)
+                  </p>
+                  <div className="mt-4">
+                    <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600">
+                      Pases Previos
+                    </span>
+                  </div>
+                </div>
+
               </div>
 
-              {/* COLUMNA DERECHA (QR y Precio) */}
-              <div className="space-y-6">
+              {/* COLUMNA DERECHA (CÓDIGO QR, PRECIO Y FOOTER) */}
+              <div className="space-y-6 lg:col-span-4">
                 
-                {/* QR Code */}
-                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center">
-                  <h4 className="text-left font-serif font-bold text-gray-900 mb-4">Código QR</h4>
-                  <div className="border-4 border-gray-100 rounded-2xl p-4 inline-block mb-4">
-                    {/* Placeholder de QR */}
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=POR-002&color=3B2211" alt="QR Code" className="w-48 h-48 mx-auto" />
+                {/* Tarjeta Código QR Dinámico */}
+                <div className="rounded-2xl border border-gray-200/80 bg-[#FCFCF9] p-6 text-center shadow-2xs">
+                  <h3 className="text-left font-serif text-base font-bold text-[#2C1405]">Código QR</h3>
+                  
+                  <div className="my-4 flex justify-center rounded-xl border border-gray-100 bg-white p-6 shadow-2xs">
+                    <QRCodeSVG 
+                      value={JSON.stringify({
+                        id: ficha.no_identificacion,
+                        animal: `${ficha.raza} ${ficha.no_identificacion ? ficha.no_identificacion.slice(-3) : ''}`,
+                        estado: 'Certificado ✓',
+                        propietario: ficha.propietario,
+                        rancho: ficha.nombre_rancho
+                      })} 
+                      size={200}
+                      fgColor="#2C1405"
+                      level="H"
+                    />
                   </div>
-                  <p className="text-xs text-gray-500 px-4">Escanea para acceder a la ficha técnica certificada</p>
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h5 className="font-bold text-gray-900 mb-2 font-serif text-sm">Información del QR</h5>
-                    <p className="text-xs text-gray-600 mb-1">ID: {data.id}</p>
-                    <p className="text-xs text-gray-600 mb-1">Animal: {data.nombre}</p>
-                    <p className="text-xs text-gray-600 font-bold">Estado: {data.estadoCertificacion}</p>
+
+                  <p className="text-xs text-gray-400">Escanea para acceder a la ficha técnica certificada</p>
+                  
+                  <div className="mt-4 pt-3 border-t border-gray-100 text-xs space-y-1">
+                    <p className="font-serif font-bold text-[#2C1405]">Información del QR</p>
+                    <p className="text-gray-500">ID: <span className="font-semibold text-gray-700">{ficha.no_identificacion}</span></p>
+                    <p className="text-gray-500">Animal: <span className="font-semibold text-gray-700">{ficha.raza}</span></p>
+                    <p className="text-gray-500">Estado: <span className="font-semibold text-[#5B6E38]">Certificado ✓</span></p>
                   </div>
                 </div>
 
-                {/* Precio y Galería */}
-                <div className="bg-[#3B2211] rounded-xl shadow-lg p-6 text-center text-white">
-                  <p className="text-xs text-yellow-600/80 font-bold tracking-widest uppercase mb-2">Precio de Venta</p>
-                  <h3 className="text-4xl font-bold font-serif mb-1">$ {data.precio}</h3>
-                  <p className="text-sm text-gray-400 mb-6">MXN</p>
-                  <button className="w-full py-3 bg-[#5C743D] hover:bg-[#4A5D31] text-white rounded-lg font-bold text-sm transition-colors flex justify-center items-center gap-2">
-                    <ImageIcon className="w-4 h-4" /> Ver Galería de Imágenes
+                {/* Tarjeta Precio de Venta */}
+                <div className="rounded-2xl bg-[#2C1405] p-6 text-center text-white shadow-md">
+                  <p className="text-xs font-bold tracking-wider uppercase text-amber-100/70">PRECIO DE VENTA</p>
+                  <p className="my-2 font-serif text-4xl font-bold tracking-tight">
+                    ${ficha.precio_venta ? ficha.precio_venta.toLocaleString('es-MX') : '8,500'}
+                  </p>
+                  <p className="text-xs font-semibold text-amber-100/50">MXN</p>
+
+                  <button className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-[#5B6E38] py-3 text-sm font-bold text-white transition-colors hover:bg-[#48582C]">
+                    <ImageIcon className="h-4 w-4" /> Ver Galería de Imágenes
                   </button>
                 </div>
 
-                <div className="bg-[#FDF6E3] border border-[#F3E5AB] rounded-xl p-4 text-center">
-                  <p className="text-sm text-[#3B2211]">Última actualización: <span className="font-bold">{data.ultimaActualizacion}</span></p>
+                {/* Última actualización */}
+                <div className="rounded-xl bg-[#F5F2DF] py-3.5 text-center text-xs font-semibold text-[#2C1405]">
+                  Última actualización: {formatDate(ficha.fecha_registro)}
                 </div>
 
               </div>
+
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
