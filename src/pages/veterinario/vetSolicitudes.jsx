@@ -1,57 +1,66 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { Search, Filter, Eye, ChevronDown, X } from 'lucide-react';
 
 import RevisionCertificacionModal from '../../components/veterinarioComponents/revisionCertificacionModal.jsx';
-import RevisionCertificacionRechazada from '../../components/veterinarioComponents/revisionCertificacionRechazada.jsx';
-import RevisionCertificacionAprobada from '../../components/veterinarioComponents/revisionCertificacionAprobada.jsx';
-
-const mockStats = {
-	todas: 10,
-	pendientes: 6,
-	aprobadas: 3,
-	rechazadas: 1,
-};
-
-const mockSolicitudes = [
-	{ id: 'SOL-005', animal: 'C-012', tipo: 'Bovino', productor: 'Laura Hernández', rancho: 'Rancho Los Pinos', raza: 'Charolais', edad: '3 años', peso: '530 kg', fecha: '28 feb 2025', estado: 'Pendiente' },
-	{ id: 'SOL-003', animal: 'B-105', tipo: 'Bovino', productor: 'Carlos Ramírez', rancho: 'Traspatio', raza: 'Holstein', edad: '4 años', peso: '520 kg', fecha: '19 feb 2025', estado: 'Pendiente' },
-	{ id: 'SOL-002', animal: 'A-004', tipo: 'Bovino', productor: 'María González', rancho: 'Rancho San José', raza: 'Brahman', edad: '3.5 años', peso: '490 kg', fecha: '17 feb 2025', estado: 'Pendiente' },
-	{ id: 'SOL-006', animal: 'B-207', tipo: 'Porcino', productor: 'Fernando Torres', rancho: 'Traspatio', raza: 'Duroc', edad: '1.5 años', peso: '380 kg', fecha: '4 feb 2025', estado: 'Pendiente' },
-	{ id: 'SOL-004', animal: 'A-008', tipo: 'Bovino', productor: 'Roberto Sánchez', rancho: 'Rancho La Esperanza', raza: 'Hereford', edad: '2 años', peso: '410 kg', fecha: '27 ene 2025', estado: 'Pendiente' },
-	{ id: 'SOL-001', animal: 'A-002', tipo: 'Bovino', productor: 'Juan Pérez', rancho: 'Rancho El Paraíso', raza: 'Angus', edad: '2.5 años', peso: '450 kg', fecha: '14 ene 2025', estado: 'Pendiente' },
-	{ id: 'SOL-009', animal: 'A-022', tipo: 'Bovino', productor: 'Sofía Díaz', rancho: 'Rancho Santa Fe', raza: 'Brahman', edad: '2 años', peso: '400 kg', fecha: '4 ene 2025', estado: 'Rechazada' },
-	{ id: 'SOL-010', animal: 'C-045', tipo: 'Bovino', productor: 'Miguel Ángel Ruiz', rancho: 'Rancho Las Palmas', raza: 'Charolais', edad: '4.5 años', peso: '550 kg', fecha: '27 dic 2024', estado: 'Aprobada' },
-	{ id: 'SOL-007', animal: 'A-015', tipo: 'Bovino', productor: 'Ana López', rancho: 'Rancho El Roble', raza: 'Angus', edad: '3 años', peso: '470 kg', fecha: '9 dic 2024', estado: 'Aprobada' },
-	{ id: 'SOL-008', animal: 'B-310', tipo: 'Bovino', productor: 'Pedro Martínez', rancho: 'Traspatio', raza: 'Holstein', edad: '5 años', peso: '560 kg', fecha: '21 nov 2024', estado: 'Aprobada' },
-];
+// Importación de tu API (Asegúrate de que la ruta sea correcta)
+import { getTodasLasSolicitudes } from '../../services/apiVeterinario/solicitudesPanel.js';
 
 const razaOptions = ['Todas las razas', 'Angus', 'Brahman', 'Charolais', 'Duroc', 'Hereford', 'Holstein'];
 const tipoOptions = ['Todos los tipos', 'Bovino', 'Porcino'];
 
 export default function VetSolicitudes() {
+	const [rawSolicitudes, setRawSolicitudes] = useState([]);
+	const [loading, setLoading] = useState(true);
+
 	const [searchQuery, setSearchQuery] = useState('');
 	const [razaFilter, setRazaFilter] = useState('Todas las razas');
 	const [tipoFilter, setTipoFilter] = useState('Todos los tipos');
+	
+	// Estado centralizado para el único Modal
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
-	const [isRejectedModalOpen, setIsRejectedModalOpen] = useState(false);
-	const [solicitudRechazadaSeleccionada, setSolicitudRechazadaSeleccionada] = useState(null);
-	const [isApprovedModalOpen, setIsApprovedModalOpen] = useState(false);
-	const [solicitudAprobadaSeleccionada, setSolicitudAprobadaSeleccionada] = useState(null);
+
+	useEffect(() => {
+		const fetchSolicitudes = async () => {
+			try {
+				setLoading(true);
+				const data = await getTodasLasSolicitudes();
+				setRawSolicitudes(data);
+			} catch (error) {
+				console.error("Error al cargar las solicitudes:", error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchSolicitudes();
+	}, []);
+
+	// Cálculo de estadísticas dinámico basado en los datos reales
+	const stats = useMemo(() => {
+		return {
+			todas: rawSolicitudes.length,
+			pendientes: rawSolicitudes.filter(s => s.estado_solicitud === 'Pendiente').length,
+			aprobadas: rawSolicitudes.filter(s => s.estado_solicitud === 'Aprobada').length,
+			rechazadas: rawSolicitudes.filter(s => s.estado_solicitud === 'Rechazada').length,
+		};
+	}, [rawSolicitudes]);
 
 	const filteredSolicitudes = useMemo(() => {
 		const normalizedQuery = searchQuery.trim().toLowerCase();
 
-		return mockSolicitudes.filter((solicitud) => {
-			const matchesSearch = !normalizedQuery || [solicitud.id, solicitud.animal, solicitud.tipo, solicitud.productor, solicitud.rancho, solicitud.raza, solicitud.fecha, solicitud.estado]
-				.some((value) => String(value).toLowerCase().includes(normalizedQuery));
+		return rawSolicitudes.filter((solicitud) => {
+			const matchesSearch = !normalizedQuery || [
+				solicitud.codigo_solicitud, solicitud.arete_animal, solicitud.tipo_ganado, 
+				solicitud.nombre_productor, solicitud.rancho, solicitud.raza, solicitud.estado_solicitud
+			].some((value) => String(value).toLowerCase().includes(normalizedQuery));
 
 			const matchesRaza = razaFilter === 'Todas las razas' || solicitud.raza === razaFilter;
-			const matchesTipo = tipoFilter === 'Todos los tipos' || solicitud.tipo === tipoFilter;
+			const matchesTipo = tipoFilter === 'Todos los tipos' || solicitud.tipo_ganado === tipoFilter;
 
 			return matchesSearch && matchesRaza && matchesTipo;
 		});
-	}, [searchQuery, razaFilter, tipoFilter]);
+	}, [rawSolicitudes, searchQuery, razaFilter, tipoFilter]);
 
 	const limpiarFiltros = () => {
 		setSearchQuery('');
@@ -59,19 +68,10 @@ export default function VetSolicitudes() {
 		setTipoFilter('Todos los tipos');
 	};
 
-	const abrirRevision = (solicitud) => {
+	// Función unificada para abrir el modal
+	const abrirModal = (solicitud) => {
 		setSolicitudSeleccionada(solicitud);
 		setIsModalOpen(true);
-	};
-
-	const abrirRechazada = (solicitud) => {
-		setSolicitudRechazadaSeleccionada(solicitud);
-		setIsRejectedModalOpen(true);
-	};
-
-	const abrirAprobada = (solicitud) => {
-		setSolicitudAprobadaSeleccionada(solicitud);
-		setIsApprovedModalOpen(true);
 	};
 
 	const getEstadoBadge = (estado) => {
@@ -87,9 +87,13 @@ export default function VetSolicitudes() {
 		}
 	};
 
-	const filtrosActivos =
-		searchQuery.trim() !== '' || razaFilter !== 'Todas las razas' || tipoFilter !== 'Todos los tipos';
+	// Función para formatear fechas desde la base de datos
+	const formatearFecha = (fechaISO) => {
+		if (!fechaISO) return '';
+		return new Date(fechaISO).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' });
+	};
 
+	const filtrosActivos = searchQuery.trim() !== '' || razaFilter !== 'Todas las razas' || tipoFilter !== 'Todos los tipos';
 	const totalMostrados = filteredSolicitudes.length;
 
 	return (
@@ -106,7 +110,7 @@ export default function VetSolicitudes() {
 							<span className="h-2 w-2 rounded-full bg-white" />
 							<span className="text-sm font-medium">Todas</span>
 						</div>
-						<div className="text-3xl font-bold leading-none">{mockStats.todas}</div>
+						<div className="text-3xl font-bold leading-none">{loading ? '-' : stats.todas}</div>
 					</div>
 
 					<div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -114,7 +118,7 @@ export default function VetSolicitudes() {
 							<span className="h-2 w-2 rounded-full bg-[#EAB308]" />
 							<span className="text-sm font-medium text-gray-600">Pendientes</span>
 						</div>
-						<div className="text-3xl font-bold leading-none text-gray-900">{mockStats.pendientes}</div>
+						<div className="text-3xl font-bold leading-none text-gray-900">{loading ? '-' : stats.pendientes}</div>
 					</div>
 
 					<div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -122,7 +126,7 @@ export default function VetSolicitudes() {
 							<span className="h-2 w-2 rounded-full bg-[#22C55E]" />
 							<span className="text-sm font-medium text-gray-600">Aprobadas</span>
 						</div>
-						<div className="text-3xl font-bold leading-none text-gray-900">{mockStats.aprobadas}</div>
+						<div className="text-3xl font-bold leading-none text-gray-900">{loading ? '-' : stats.aprobadas}</div>
 					</div>
 
 					<div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
@@ -130,7 +134,7 @@ export default function VetSolicitudes() {
 							<span className="h-2 w-2 rounded-full bg-[#EF4444]" />
 							<span className="text-sm font-medium text-gray-600">Rechazadas</span>
 						</div>
-						<div className="text-3xl font-bold leading-none text-gray-900">{mockStats.rechazadas}</div>
+						<div className="text-3xl font-bold leading-none text-gray-900">{loading ? '-' : stats.rechazadas}</div>
 					</div>
 				</div>
 
@@ -152,7 +156,7 @@ export default function VetSolicitudes() {
 								<Filter className="h-4 w-4" />
 							</button>
 
-							<div className="relative min-w-[140px]">
+							<div className="relative min-w-35">
 								<select
 									value={razaFilter}
 									onChange={(event) => setRazaFilter(event.target.value)}
@@ -171,7 +175,7 @@ export default function VetSolicitudes() {
 								<Filter className="h-4 w-4" />
 							</button>
 
-							<div className="relative min-w-[140px]">
+							<div className="relative min-w-35">
 								<select
 									value={tipoFilter}
 									onChange={(event) => setTipoFilter(event.target.value)}
@@ -197,12 +201,11 @@ export default function VetSolicitudes() {
 							)}
 						</div>
 					</div>
-
 				</div>
 
 				<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm font-sans">
 					<div className="overflow-x-auto">
-						<table className="w-full min-w-[1200px] text-left text-sm text-[#243145]">
+						<table className="w-full min-w-300 text-left text-sm text-[#243145]">
 							<thead className="border-b border-gray-200 bg-gray-50/60 text-[12px] font-semibold text-[#1F2937]">
 								<tr>
 									<th className="px-6 py-4">Solicitud</th>
@@ -220,79 +223,77 @@ export default function VetSolicitudes() {
 							</thead>
 
 							<tbody className="divide-y divide-gray-100">
-								{filteredSolicitudes.map((solicitud) => (
-									<tr key={solicitud.id} className="hover:bg-[#FBFBF8] transition-colors">
-										<td className="px-6 py-5 font-bold text-[#111827]">{solicitud.id}</td>
-										<td className="px-6 py-5">{solicitud.animal}</td>
-										<td className="px-6 py-5">{solicitud.tipo}</td>
-										<td className="px-6 py-5">{solicitud.productor}</td>
-										<td className="px-6 py-5">{solicitud.rancho}</td>
-										<td className="px-6 py-5">{solicitud.raza}</td>
-										<td className="px-6 py-5">{solicitud.edad}</td>
-										<td className="px-6 py-5">{solicitud.peso}</td>
-										<td className="px-6 py-5">{solicitud.fecha}</td>
-										<td className="px-6 py-5">{getEstadoBadge(solicitud.estado)}</td>
-										<td className="px-6 py-5">
-											<div className="flex justify-center">
-												{solicitud.estado === 'Pendiente' ? (
-													<button
-														onClick={() => abrirRevision(solicitud)}
-														className="inline-flex items-center gap-2 rounded-xl border border-[#1F5E16] bg-[#2E6B2C] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#235322]"
-													>
-														<Eye className="h-4 w-4" />
-														Revisar
-													</button>
-												) : solicitud.estado === 'Rechazada' ? (
-													<button
-														onClick={() => abrirRechazada(solicitud)}
-														className="inline-flex items-center gap-2 rounded-xl border border-[#C9D3E2] bg-white px-4 py-2 text-xs font-semibold text-[#2E3B55] shadow-sm transition-colors hover:bg-[#F8FAFC]"
-													>
-														<Eye className="h-4 w-4" />
-														Ver
-													</button>
-												) : solicitud.estado === 'Aprobada' ? (
-													<button
-														onClick={() => abrirAprobada(solicitud)}
-														className="inline-flex items-center gap-2 rounded-xl border border-[#BFDCC7] bg-white px-4 py-2 text-xs font-semibold text-[#1E7A39] shadow-sm transition-colors hover:bg-[#F3FBF5]"
-													>
-														<Eye className="h-4 w-4" />
-														Ver
-													</button>
-												) : (
-													<button className="inline-flex items-center gap-2 rounded-xl border border-[#C9D3E2] bg-white px-4 py-2 text-xs font-semibold text-[#2E3B55] shadow-sm transition-colors hover:bg-[#F8FAFC]">
-														<Eye className="h-4 w-4" />
-														Ver
-													</button>
-												)}
-											</div>
+								{loading ? (
+									<tr>
+										<td colSpan={11} className="px-6 py-16 text-center text-sm text-gray-500">
+											Cargando solicitudes...
 										</td>
 									</tr>
-								))}
+								) : filteredSolicitudes.length > 0 ? (
+									filteredSolicitudes.map((solicitud) => (
+										<tr key={solicitud.id_solicitud} className="hover:bg-[#FBFBF8] transition-colors">
+											<td className="px-6 py-5 font-bold text-[#111827]">{solicitud.codigo_solicitud}</td>
+											<td className="px-6 py-5">{solicitud.arete_animal}</td>
+											<td className="px-6 py-5">{solicitud.tipo_ganado}</td>
+											<td className="px-6 py-5">{solicitud.nombre_productor}</td>
+											<td className="px-6 py-5">{solicitud.rancho}</td>
+											<td className="px-6 py-5">{solicitud.raza}</td>
+											<td className="px-6 py-5">{solicitud.edad_anios} años</td>
+											<td className="px-6 py-5">{solicitud.peso_est_kg} kg</td>
+											<td className="px-6 py-5">{formatearFecha(solicitud.fecha_solicitud)}</td>
+											<td className="px-6 py-5">{getEstadoBadge(solicitud.estado_solicitud)}</td>
+											<td className="px-6 py-5">
+												<div className="flex justify-center">
+													{solicitud.estado_solicitud === 'Pendiente' ? (
+														<button
+															onClick={() => abrirModal(solicitud)}
+															className="inline-flex items-center gap-2 rounded-xl border border-[#1F5E16] bg-[#2E6B2C] px-4 py-2 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-[#235322]"
+														>
+															<Eye className="h-4 w-4" />
+															Revisar
+														</button>
+													) : solicitud.estado_solicitud === 'Rechazada' ? (
+														<button
+															onClick={() => abrirModal(solicitud)}
+															className="inline-flex items-center gap-2 rounded-xl border border-[#C9D3E2] bg-white px-4 py-2 text-xs font-semibold text-[#2E3B55] shadow-sm transition-colors hover:bg-[#F8FAFC]"
+														>
+															<Eye className="h-4 w-4" />
+															Ver
+														</button>
+													) : (
+														<button
+															onClick={() => abrirModal(solicitud)}
+															className="inline-flex items-center gap-2 rounded-xl border border-[#BFDCC7] bg-white px-4 py-2 text-xs font-semibold text-[#1E7A39] shadow-sm transition-colors hover:bg-[#F3FBF5]"
+														>
+															<Eye className="h-4 w-4" />
+															Ver
+														</button>
+													)}
+												</div>
+											</td>
+										</tr>
+									))
+								) : (
+									<tr>
+										<td colSpan={11} className="px-6 py-16 text-center text-sm text-gray-500">
+											No se encontraron solicitudes con los filtros actuales.
+										</td>
+									</tr>
+								)}
 							</tbody>
 						</table>
 					</div>
 
 					<div className="border-t border-gray-200 bg-white px-6 py-4 text-sm text-[#3B4658]">
-						Mostrando <span className="font-bold text-[#111827]">{totalMostrados}</span> de <span className="font-bold text-[#111827]">{mockSolicitudes.length}</span> solicitudes
+						Mostrando <span className="font-bold text-[#111827]">{totalMostrados}</span> de <span className="font-bold text-[#111827]">{rawSolicitudes.length}</span> solicitudes
 					</div>
 				</div>
 
+				{/* Un solo modal para todos los estados */}
 				<RevisionCertificacionModal
 					isOpen={isModalOpen}
 					onClose={() => setIsModalOpen(false)}
 					solicitud={solicitudSeleccionada}
-				/>
-
-				<RevisionCertificacionRechazada
-					isOpen={isRejectedModalOpen}
-					onClose={() => setIsRejectedModalOpen(false)}
-					solicitud={solicitudRechazadaSeleccionada}
-				/>
-
-				<RevisionCertificacionAprobada
-					isOpen={isApprovedModalOpen}
-					onClose={() => setIsApprovedModalOpen(false)}
-					solicitud={solicitudAprobadaSeleccionada}
 				/>
 			</div>
 		</div>
