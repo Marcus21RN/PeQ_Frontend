@@ -83,6 +83,9 @@ export const AuthProvider = ({ children }) => {
       setToken(accessToken);
       setUser(userData);
       localStorage.setItem('access_token', accessToken);
+      if (userData?.id_usuario != null) {
+        localStorage.setItem('id_usuario', String(userData.id_usuario));
+      }
       localStorage.setItem('user_info', JSON.stringify(userData));
 
       return { success: true, user: userData };
@@ -90,6 +93,7 @@ export const AuthProvider = ({ children }) => {
       console.error('Error al iniciar sesión:', error);
       const backendMessage = error.response?.data?.detail || error.response?.data?.message;
       localStorage.removeItem('access_token');
+      localStorage.removeItem('id_usuario');
       localStorage.removeItem('user_info');
       setToken(null);
       setUser(null);
@@ -104,6 +108,7 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('access_token');
+    localStorage.removeItem('id_usuario');
     localStorage.removeItem('user_info');
   };
 

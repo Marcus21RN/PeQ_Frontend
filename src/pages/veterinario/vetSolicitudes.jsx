@@ -3,7 +3,7 @@ import { Search, Filter, Eye, ChevronDown, X } from 'lucide-react';
 
 import RevisionCertificacionModal from '../../components/veterinarioComponents/revisionCertificacionModal.jsx';
 // Importación de tu API (Asegúrate de que la ruta sea correcta)
-import { getTodasLasSolicitudes } from '../../services/apiVeterinario/solicitudesPanel.js';
+import { getTodasLasSolicitudes, normalizarListaSolicitudesVeterinarias } from '../../services/apiVeterinario/solicitudesPanel.js';
 
 const razaOptions = ['Todas las razas', 'Angus', 'Brahman', 'Charolais', 'Duroc', 'Hereford', 'Holstein'];
 const tipoOptions = ['Todos los tipos', 'Bovino', 'Porcino'];
@@ -20,19 +20,19 @@ export default function VetSolicitudes() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
 
-	useEffect(() => {
-		const fetchSolicitudes = async () => {
-			try {
-				setLoading(true);
-				const data = await getTodasLasSolicitudes();
-				setRawSolicitudes(data);
-			} catch (error) {
-				console.error("Error al cargar las solicitudes:", error);
-			} finally {
-				setLoading(false);
-			}
-		};
+	const fetchSolicitudes = async () => {
+		try {
+			setLoading(true);
+			const data = await getTodasLasSolicitudes();
+			setRawSolicitudes(normalizarListaSolicitudesVeterinarias(data));
+		} catch (error) {
+			console.error("Error al cargar las solicitudes:", error);
+		} finally {
+			setLoading(false);
+		}
+	};
 
+	useEffect(() => {
 		fetchSolicitudes();
 	}, []);
 
@@ -294,6 +294,7 @@ export default function VetSolicitudes() {
 					isOpen={isModalOpen}
 					onClose={() => setIsModalOpen(false)}
 					solicitud={solicitudSeleccionada}
+						onReviewed={fetchSolicitudes}
 				/>
 			</div>
 		</div>

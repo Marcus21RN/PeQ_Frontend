@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Eye, MapPin, Scale, CalendarDays, UserRound } from 'lucide-react';
 
 import RevisionCertificacionModal from '../../components/veterinarioComponents/revisionCertificacionModal.jsx';
-import { getSolicitudesPendientes } from '../../services/apiVeterinario/solicitudesPanel.js';
+import { getSolicitudesPendientes, normalizarListaSolicitudesVeterinarias } from '../../services/apiVeterinario/solicitudesPanel.js';
 
 export default function VetDashboard() {
 	const [isModalOpen, setIsModalOpen] = useState(false);
@@ -10,21 +10,20 @@ export default function VetDashboard() {
 	const [solicitudes, setSolicitudes] = useState([]);
 	const [loading, setLoading] = useState(true);
 
+	const fetchSolicitudes = async () => {
+		try {
+			setLoading(true);
+
+			const response = await getSolicitudesPendientes();
+			setSolicitudes(normalizarListaSolicitudesVeterinarias(response));
+		} catch (error) {
+			console.error('Error al obtener solicitudes:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	useEffect(() => {
-		const fetchSolicitudes = async () => {
-			try {
-				setLoading(true);
-
-				const response = await getSolicitudesPendientes();
-				const solicitudesApi = Array.isArray(response) ? response : response?.data ?? [];
-				setSolicitudes(solicitudesApi);
-			} catch (error) {
-				console.error('Error al obtener solicitudes:', error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
 		fetchSolicitudes();
 	}, []);
 
@@ -75,7 +74,7 @@ export default function VetDashboard() {
 									<div className="flex-1 space-y-4">
 										<div className="flex items-center gap-3 flex-wrap">
 											<h3 className="text-lg font-bold text-[#111827]">
-												{solicitud.arete_id} - {solicitud.raza}
+												{solicitud.arete_animal} - {solicitud.raza}
 											</h3>
 											<span className="inline-flex items-center rounded-full bg-[#FFF1C7] px-2.5 py-0.5 text-[10px] font-semibold text-[#8B6E00] border border-[#F1DE9C]">
 												{solicitud.estado_solicitud}
@@ -126,6 +125,7 @@ export default function VetDashboard() {
 				isOpen={isModalOpen}
 				onClose={() => setIsModalOpen(false)}
 				solicitud={solicitudSeleccionada}
+				onReviewed={fetchSolicitudes}
 			/>
 		</div>
 	);

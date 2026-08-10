@@ -1,27 +1,32 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { X, Lock, ShieldCheck, PencilLine, Upload, Plus, CircleX, CircleCheckBig } from 'lucide-react';
 
-export default function RevisionCertificacionModal({ isOpen, onClose, solicitud }) {
+import { ESTADOS_REVISION_CERTIFICACION, registrarRevisionCertificacion } from '../../services/apiVeterinario/solicitudesPanel.js';
+
+const ESTADO_PENDIENTE = 'Pendiente';
+
+export default function RevisionCertificacionModal({ isOpen, onClose, solicitud, onReviewed }) {
 	const [pesoValidado, setPesoValidado] = useState('');
 	const [observaciones, setObservaciones] = useState('');
 	const [vacunaNombre, setVacunaNombre] = useState('');
 	const [vacunaLote, setVacunaLote] = useState('');
 	const [vacunaFecha, setVacunaFecha] = useState('');
+	const [isLoading, setIsLoading] = useState(false);
 
 	const data = useMemo(() => {
 		if (!solicitud) return null;
 
-		// Formateamos la fecha para que se vea igual que en tu diseño (ej. "14 de enero de 2026")
-		const fechaFormateada = new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES', {
+		const fechaFormateada = solicitud.fecha_solicitud
+			? new Date(solicitud.fecha_solicitud).toLocaleDateString('es-ES', {
 			day: 'numeric',
 			month: 'long',
 			year: 'numeric',
-		});
+			})
+			: 'Sin dato';
 
-		// Mapeamos los datos exactamente como vienen de tu función fn_obtener_solicitudes_vet
 		return {
-			id_bd: solicitud.id_solicitud, // El ID real numérico para hacer el PUT en la BD
-			codigo: solicitud.codigo_solicitud, // El ID visual (SOL-001)
+			id_bd: solicitud.id_solicitud,
+			codigo: solicitud.codigo_solicitud,
 			arete: solicitud.arete_animal,
 			estado: solicitud.estado_solicitud,
 			productor: solicitud.nombre_productor,
@@ -29,36 +34,90 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 			tipoAnimal: solicitud.tipo_ganado,
 			raza: solicitud.raza,
 			edad: solicitud.edad_anios,
-			sexo: 'Macho', // Dato estático temporal (no viene en la función SQL actual)
+			sexo: solicitud.sexo || 'Sin dato',
 			pesoEstimado: solicitud.peso_est_kg,
-			condicion: 'Excelente',
-			crias: 'No',
+			condicion: solicitud.condicion_corporal || 'Excelente',
+			crias: solicitud.tiene_crias ? 'Sí' : 'No',
 			fechaSolicitud: fechaFormateada,
-			// Mock de certificaciones extra requeridas (esto podría venir de otra tabla después)
-			vacunaciones: [{ nombre: 'Vacunación Aftosa', aprobada: false }],
+			vacunaciones: Array.isArray(solicitud.vacunaciones) && solicitud.vacunaciones.length > 0
+				? solicitud.vacunaciones
+				: [{ nombre: 'Vacunación Aftosa', aprobada: false }],
 		};
 	}, [solicitud]);
+
+	const esPendiente = data?.estado === ESTADO_PENDIENTE;
+
+	useEffect(() => {
+		if (!data) return;
+
+		setPesoValidado('');
+		setObservaciones('');
+		setVacunaNombre('');
+		setVacunaLote('');
+		setVacunaFecha('');
+	}, [data?.id_bd]);
 
 	if (!isOpen || !data) return null;
 
 	const cerrar = () => onClose();
 
-	const handleAprobar = () => {
-		// Aquí enviaremos el data.id_bd (ID real) a Axios más adelante
-		console.log('Aprobar y certificar ID DB:', data.id_bd, { 
-			pesoValidado, 
-			observaciones, 
-			vacunaNombre, 
-			vacunaLote, 
-			vacunaFecha 
-		});
-		cerrar();
+	const construirCaracteristicasValidadas = () => {
+		const campos = [
+			`Raza: ${data.raza}`,
+			`Edad: ${data.edad}`,
+			`Sexo: ${data.sexo}`,
+			`Condición corporal: ${data.condicion}`,
+			`¿Tiene crías?: ${data.crias}`,
+		];
+
+		if (vacunaNombre || vacunaLote || vacunaFecha) {
+			campos.push(`Vacunación aplicada: ${[vacunaNombre, vacunaLote, vacunaFecha].filter(Boolean).join(' | ')}`);
+		}
+
+		return campos.join(' | ');
 	};
 
-	const handleRechazar = () => {
-		console.log('Rechazar certificación ID DB:', data.id_bd, { observaciones });
-		cerrar();
+	const enviarRevision = async (tipoRevision) => {
+		if (!data.id_bd) {
+			throw new Error('No se encontró el ID de la solicitud para registrar la revisión.');
+		}
+
+		const pesoNumerico = Number(pesoValidado);
+		if (!Number.isFinite(pesoNumerico) || pesoNumerico <= 0) {
+			throw new Error('Ingresa un peso validado válido antes de continuar.');
+		}
+
+		if (tipoRevision === 'Rechazada' && !observaciones.trim()) {
+			throw new Error('Para rechazar la solicitud necesitas agregar observaciones médicas.');
+		}
+
+		const payload = {
+			id_solicitud: data.id_bd,
+			peso_validado: pesoNumerico,
+			caracteristicas_validadas: construirCaracteristicasValidadas(),
+			observaciones_medicas: observaciones.trim() || 'Sin observaciones médicas registradas.',
+			dictamen: tipoRevision,
+			id_estado_nuevo: tipoRevision === 'Aprobada' ? ESTADOS_REVISION_CERTIFICACION.APROBADA : ESTADOS_REVISION_CERTIFICACION.RECHAZADA,
+		};
+
+		setIsLoading(true);
+		try {
+			await registrarRevisionCertificacion(payload);
+			if (typeof onReviewed === 'function') {
+				await onReviewed();
+			}
+			alert(`Solicitud ${tipoRevision.toLowerCase()} correctamente.`);
+			cerrar();
+		} catch (error) {
+			console.error(`Error al registrar revisión ${tipoRevision.toLowerCase()}:`, error);
+			alert(error.response?.data?.detail || error.message || 'No fue posible registrar la revisión.');
+		} finally {
+			setIsLoading(false);
+		}
 	};
+
+	const handleAprobar = () => enviarRevision('Aprobada');
+	const handleRechazar = () => enviarRevision('Rechazada');
 
 	return (
 		<div className="fixed inset-0 z-50 bg-black/50 p-0 md:p-4">
@@ -121,43 +180,43 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 					<section className="mt-8 space-y-4">
 						<div className="flex items-center gap-2">
 							<PencilLine className="h-5 w-5 text-[#2E6B2C]" />
-							<h3 className="text-[18px] font-bold">Datos del Animal</h3>
+							<h3 className="text-[18px] font-bold">Datos de Validación</h3>
 						</div>
 						<div className="rounded-2xl border border-[#BFD7B8] bg-[#F8FCF7] px-6 py-6">
 							<div className="grid grid-cols-1 gap-5 md:grid-cols-3">
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Raza *</span>
-									<select className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" defaultValue={data.raza}>
+									<select disabled={!esPendiente} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" defaultValue={data.raza}>
 										<option>{data.raza}</option>
 									</select>
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Edad (años) *</span>
-									<input type="text" defaultValue={data.edad} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+									<input type="text" defaultValue={data.edad} disabled={!esPendiente} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" />
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Sexo *</span>
-									<select className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" defaultValue={data.sexo}>
+									<select disabled={!esPendiente} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" defaultValue={data.sexo}>
 										<option>{data.sexo}</option>
 									</select>
 								</label>
 
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Peso Validado (kg) *</span>
-									<input type="text" value={pesoValidado} onChange={(event) => setPesoValidado(event.target.value)} placeholder="Ingresa el peso real del animal" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+									<input type="text" value={pesoValidado} onChange={(event) => setPesoValidado(event.target.value)} disabled={!esPendiente || isLoading} placeholder="Ingresa el peso real del animal" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" />
 									<span className="mt-2 block text-[11px] text-[#6B7280]">Peso estimado por productor: {data.pesoEstimado} kg</span>
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Condición Corporal *</span>
-									<select className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" defaultValue={data.condicion}>
+									<select disabled={!esPendiente} className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] text-[#111827] outline-none focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" defaultValue={data.condicion}>
 										<option>{data.condicion}</option>
 									</select>
 								</label>
 								<div className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">¿Tiene crías?</span>
 									<div className="flex items-center gap-6 pt-3 text-[14px] text-[#111827]">
-										<label className="flex items-center gap-2"><input type="radio" name="crias" defaultChecked={data.crias === 'Sí'} /><span>Sí</span></label>
-										<label className="flex items-center gap-2"><input type="radio" name="crias" defaultChecked={data.crias !== 'Sí'} /><span>No</span></label>
+										<label className="flex items-center gap-2"><input type="radio" name="crias" disabled={!esPendiente} defaultChecked={data.crias === 'Sí'} /><span>Sí</span></label>
+										<label className="flex items-center gap-2"><input type="radio" name="crias" disabled={!esPendiente} defaultChecked={data.crias !== 'Sí'} /><span>No</span></label>
 									</div>
 								</div>
 							</div>
@@ -176,10 +235,7 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 										<ShieldCheck className="h-5 w-5 text-[#7C8A9A]" />
 										<span className="text-[14px] font-medium text-[#111827]">{item.nombre}</span>
 									</div>
-									<div className="flex gap-2">
-										<button className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-[#F7F7F4] px-4 py-2 text-[12px] font-medium text-[#111827] shadow-sm hover:bg-gray-100"><CircleCheckBig className="h-4 w-4 text-[#2E6B2C]" />Aprobar</button>
-										<button className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-[#F7F7F4] px-4 py-2 text-[12px] font-medium text-[#111827] shadow-sm hover:bg-gray-100"><CircleX className="h-4 w-4 text-[#111827]" />Rechazar</button>
-									</div>
+									<span className="inline-flex rounded-full bg-[#EEF2FF] px-3 py-1 text-[11px] font-semibold text-[#3B4A92]">Solo lectura</span>
 								</div>
 							))}
 						</div>
@@ -196,18 +252,20 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 							<div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Nombre de la vacuna</span>
-									<input value={vacunaNombre} onChange={(event) => setVacunaNombre(event.target.value)} type="text" placeholder="Ej: Vacuna contra Aftosa" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+									<input value={vacunaNombre} onChange={(event) => setVacunaNombre(event.target.value)} disabled={!esPendiente || isLoading} type="text" placeholder="Ej: Vacuna contra Aftosa" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" />
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">No. de Lote</span>
-									<input value={vacunaLote} onChange={(event) => setVacunaLote(event.target.value)} type="text" placeholder="Ej: LOT-2025-001" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+									<input value={vacunaLote} onChange={(event) => setVacunaLote(event.target.value)} disabled={!esPendiente || isLoading} type="text" placeholder="Ej: LOT-2025-001" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" />
 								</label>
 								<label className="block">
 									<span className="mb-2 block text-[12px] font-medium text-[#111827]">Fecha de aplicación</span>
-									<input value={vacunaFecha} onChange={(event) => setVacunaFecha(event.target.value)} type="text" placeholder="mm/dd/yyyy" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+									<input value={vacunaFecha} onChange={(event) => setVacunaFecha(event.target.value)} disabled={!esPendiente || isLoading} type="text" placeholder="mm/dd/yyyy" className="w-full rounded-xl border border-[#CBD5E1] bg-white px-4 py-3 text-[14px] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" />
 								</label>
 							</div>
-							<button className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#A2C195] px-4 py-3 text-[13px] font-semibold text-white shadow-sm hover:bg-[#8FB17F]"><Plus className="h-4 w-4" />Agregar Vacunación</button>
+							{esPendiente && (
+								<button type="button" disabled={isLoading} className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#A2C195] px-4 py-3 text-[13px] font-semibold text-white shadow-sm hover:bg-[#8FB17F] disabled:cursor-not-allowed disabled:opacity-70"><Plus className="h-4 w-4" />Agregar Vacunación</button>
+							)}
 						</div>
 					</section>
 
@@ -217,17 +275,22 @@ export default function RevisionCertificacionModal({ isOpen, onClose, solicitud 
 						<h3 className="text-[18px] font-bold">Observaciones Veterinarias</h3>
 						<label className="block">
 							<span className="mb-2 block text-[12px] font-medium text-[#111827]">Observaciones Técnicas *</span>
-							<textarea rows="6" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} placeholder="Agrega tus observaciones profesionales sobre el estado del animal..." className="w-full resize-none rounded-xl border border-[#CBD5E1] bg-white px-4 py-4 text-[14px] text-[#111827] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15" />
+							<textarea rows="6" value={observaciones} onChange={(event) => setObservaciones(event.target.value)} disabled={!esPendiente || isLoading} placeholder="Agrega tus observaciones profesionales sobre el estado del animal..." className="w-full resize-none rounded-xl border border-[#CBD5E1] bg-white px-4 py-4 text-[14px] text-[#111827] outline-none placeholder:text-gray-400 focus:border-[#2E6B2C] focus:ring-2 focus:ring-[#2E6B2C]/15 disabled:cursor-not-allowed disabled:bg-gray-50" />
 						</label>
+						{!esPendiente && (
+							<p className="text-[12px] text-[#6B7280]">Esta solicitud ya fue revisada, por lo que solo se muestra en modo consulta.</p>
+						)}
 					</section>
 				</div>
 
-				<div className="border-t border-gray-200 px-4 py-4 md:px-8 md:py-6">
-					<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-						<button onClick={handleRechazar} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#FF2F2F] bg-white px-6 py-4 text-[14px] font-semibold text-[#E11D1D] transition-colors hover:bg-red-50"><CircleX className="h-5 w-5" />Rechazar Certificación</button>
-						<button onClick={handleAprobar} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#9DBA8E] bg-[#A5C49A] px-6 py-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[#90B585]"><CircleCheckBig className="h-5 w-5" />Aprobar y Certificar</button>
+				{esPendiente && (
+					<div className="border-t border-gray-200 px-4 py-4 md:px-8 md:py-6">
+						<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+							<button onClick={handleRechazar} disabled={isLoading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#FF2F2F] bg-white px-6 py-4 text-[14px] font-semibold text-[#E11D1D] transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-70"><CircleX className="h-5 w-5" />Rechazar Certificación</button>
+							<button onClick={handleAprobar} disabled={isLoading} className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#9DBA8E] bg-[#A5C49A] px-6 py-4 text-[14px] font-semibold text-white shadow-sm transition-colors hover:bg-[#90B585] disabled:cursor-not-allowed disabled:opacity-70"><CircleCheckBig className="h-5 w-5" />Aprobar Certificación</button>
+						</div>
 					</div>
-				</div>
+				)}
 			</div>
 		</div>
 	);

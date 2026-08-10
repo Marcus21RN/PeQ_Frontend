@@ -13,32 +13,43 @@ export default function VetPerfil() {
 	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 	const [isSolicitudesModalOpen, setIsSolicitudesModalOpen] = useState(false);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [toast, setToast] = useState(null);
 	
 	const [perfil, setPerfil] = useState(null);
 	const [loading, setLoading] = useState(true);
 
 	const [documentos, setDocumentos] = useState([]);
 
+	const fetchPerfil = async () => {
+		try {
+			setLoading(true);
+			const id_usuario = localStorage.getItem('id_usuario');
+			const response = await getPerfilDetallado(id_usuario);
+			const documentos = await getDocumentosSubidos(id_usuario);
+			response.documentos = documentos;
+			setPerfil(response);
+			setDocumentos(documentos);
+		} catch (error) {
+			console.error('Error al obtener el perfil detallado:', error);
+		} finally {
+			setLoading(false);
+		}
+	};
+
 
 	useEffect(() => {
-		const fetchPerfil = async () => {
-			try {
-				setLoading(true);
-				const id_usuario = localStorage.getItem('id_usuario');
-				const response = await getPerfilDetallado(id_usuario);
-				const documentos = await getDocumentosSubidos(id_usuario);
-				response.documentos = documentos;
-				setPerfil(response);
-				setDocumentos(documentos);
-			} catch (error) {
-				console.error('Error al obtener el perfil detallado:', error);
-			} finally {
-				setLoading(false);
-			}
-		};
-
-		fetchPerfil();
+		void Promise.resolve().then(fetchPerfil);
 	}, []);
+
+	useEffect(() => {
+		if (!toast) return undefined;
+
+		const timeoutId = window.setTimeout(() => {
+			setToast(null);
+		}, 3200);
+
+		return () => window.clearTimeout(timeoutId);
+	}, [toast]);
 
 	// Funciones para mantener tu formato de fechas visual
 	const formatearMesAnio = (fechaISO) => {
@@ -51,6 +62,13 @@ export default function VetPerfil() {
 		return new Date(fechaISO).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
 	};
 
+	const mostrarToastExito = (mensaje) => {
+		setToast({
+			type: 'success',
+			message: mensaje,
+		});
+	};
+
 	if (loading) {
 		return <div className="min-h-screen flex items-center justify-center font-sans">Cargando perfil...</div>;
 	}
@@ -61,6 +79,12 @@ export default function VetPerfil() {
 
 	return (
 		<div className="min-h-[calc(100vh-2rem)] bg-[#F7F7F4] px-4 py-4 md:px-6 md:py-6 font-serif">
+			{toast && (
+				<div className="fixed right-4 top-4 z-60 w-[calc(100vw-2rem)] max-w-md rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4 shadow-2xl shadow-emerald-900/10">
+					<p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Actualización exitosa</p>
+					<p className="mt-1 text-sm text-emerald-900">{toast.message}</p>
+				</div>
+			)}
 			<div className="mx-auto max-w-7xl space-y-8">
 				<div className="space-y-2">
 					<h1 className="text-[30px] font-bold text-[#111827] md:text-[34px]">Mi Perfil</h1>
@@ -194,7 +218,15 @@ export default function VetPerfil() {
 
 			<CambiarContrasenaModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} />
 			<SolicitudesCambioModal isOpen={isSolicitudesModalOpen} onClose={() => setIsSolicitudesModalOpen(false)} />
-			<EditarPerfilModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} dataActual={perfil} />
+			<EditarPerfilModal
+				isOpen={isEditModalOpen}
+				onClose={() => setIsEditModalOpen(false)}
+				dataActual={perfil}
+				onSuccess={() => {
+					fetchPerfil();
+					mostrarToastExito('Tu perfil veterinario se actualizó correctamente.');
+				}}
+			/>
 		</div>
 	);
 }
