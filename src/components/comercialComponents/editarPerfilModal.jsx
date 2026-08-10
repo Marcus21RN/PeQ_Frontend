@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+// eslint-disable no-unused-vars */
 import { useState } from 'react';
 import { X, User, Home, AlertCircle, CheckCircle } from 'lucide-react';
 import { editarPerfilProductor } from '../../services/apiTraspatio/editarPerfilProductor';

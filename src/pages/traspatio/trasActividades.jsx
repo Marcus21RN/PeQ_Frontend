@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+
 // src/pages/comercial/MisActividades.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { Search, ChevronDown } from 'lucide-react';

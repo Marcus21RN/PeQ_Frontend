@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 
 // src/pages/traspatio/trasAnimales.jsx
 import { useState, useEffect, useMemo } from 'react';

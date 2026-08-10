@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+// eslint-disable no-unused-vars */
 import { useState } from 'react';
 import { X, Lock, CheckCircle, AlertCircle, Eye, EyeOff, Check, X as Cross } from 'lucide-react';
 

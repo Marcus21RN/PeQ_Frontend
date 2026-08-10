@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+//eslint-disable no-unused-vars 
 import { useState, useEffect } from 'react';
 import { User, Home, FileText, Eye, Upload, Lock, Clock, Edit } from 'lucide-react';
 import ModalEditarPerfilComercial from '../../components/comercialComponents/editarPerfilModal.jsx';

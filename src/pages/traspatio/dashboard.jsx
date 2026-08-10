@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 
 // src/pages/comercial/PanelPrincipalComercial.jsx
 import { useState, useEffect } from 'react';
