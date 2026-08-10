@@ -1,4 +1,4 @@
-/* eslint-disable no-unused-vars */
+
 import { useState, useEffect, useMemo } from 'react';
 import { Search, RotateCcw, Clock, Activity, FileText, CheckCircle2 } from 'lucide-react';
 import { getActividadesProductor } from '../../services/apiComercial/actividadProductor';
