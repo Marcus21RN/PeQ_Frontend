@@ -2,57 +2,33 @@
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
-export default function ModalRevisarUsuario({ isOpen, onClose, usuarioId }) {
+export default function ModalRevisarUsuario({ isOpen, onClose, usuarioId, usuarioData }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notas, setNotas] = useState('');
 
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // useEffect(() => {
-  //   if (!isOpen || !usuarioId) return;
-  //   
-  //   const fetchDetalleUsuario = async () => {
-  //     setIsLoading(true);
-  //     try {
-  //       const response = await api.get(`/admin/usuarios/${usuarioId}`);
-  //       setData(response.data);
-  //       setNotas(response.data.notas_admin || '');
-  //     } catch (error) {
-  //       console.error("Error al obtener detalle del usuario:", error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  //   fetchDetalleUsuario();
-  // }, [isOpen, usuarioId]);
-
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
   useEffect(() => {
     if (!isOpen) return;
-    
-    setIsLoading(true);
-    // Simular carga
-    const timer = setTimeout(() => {
+
+    if (usuarioData) {
       setData({
-        id: usuarioId || 'USR-010',
-        nombre_completo: 'Carlos Alberto Reyes',
-        correo: 'admin@sistema-ganado.gob.mx',
-        telefono: '5559001234',
-        tipo_usuario: 'Administrador',
-        estado: 'Activo',
-        rol_administrativo: 'Administrador General',
-        departamento: 'Regulación Pecuaria'
+        id: usuarioData.id_usuario_display ?? usuarioData.id_usuario ?? usuarioId ?? 'USR-010',
+        nombre_completo: usuarioData.nombre_completo || 'Sin nombre',
+        correo: usuarioData.email || 'Sin correo',
+        telefono: usuarioData.telefono || 'Sin teléfono',
+        tipo_usuario: usuarioData.tipo_rol || 'Sin tipo',
+        estado: usuarioData.estado_usuario || 'Activo',
+        rol_administrativo: usuarioData.tipo_rol || 'Administrador',
+        departamento: usuarioData.ciudad || 'Sin ciudad'
       });
       setNotas('');
       setIsLoading(false);
-    }, 400);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, [isOpen, usuarioId]);
+    setIsLoading(true);
+    setData(null);
+  }, [isOpen, usuarioData, usuarioId]);
 
   if (!isOpen) return null;
 
@@ -95,7 +71,7 @@ export default function ModalRevisarUsuario({ isOpen, onClose, usuarioId }) {
             <div className="flex justify-center items-center h-40 font-sans text-gray-500">
               Cargando información...
             </div>
-          ) : (
+          ) : data ? (
             <>
               {/* Información del Usuario */}
               <section>
@@ -146,6 +122,10 @@ export default function ModalRevisarUsuario({ isOpen, onClose, usuarioId }) {
                 ></textarea>
               </section>
             </>
+          ) : (
+            <div className="flex justify-center items-center h-40 font-sans text-gray-500">
+              No hay información disponible para revisar.
+            </div>
           )}
         </div>
       </div>

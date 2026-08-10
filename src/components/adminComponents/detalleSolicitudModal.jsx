@@ -2,73 +2,97 @@
 
 import { useEffect, useState } from 'react';
 import { X, XCircle, Clock, CheckCircle } from 'lucide-react';
+import { getEstadoIdPorNombre, getEstadoNombrePorId, getEstadosCatalogo, actualizarUsuarioAdministrador } from '../../services/apiAdmin/panelAdmin.js';
 
-export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) {
+export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId, solicitudData, onUpdated }) {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notas, setNotas] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [estadosCatalogo, setEstadosCatalogo] = useState([]);
 
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // useEffect(() => {
-  //   if (!isOpen || !solicitudId) return;
-  //   
-  //   const fetchSolicitud = async () => {
-  //     setIsLoading(true);
-  //     try {
-  //       const response = await api.get(`/admin/solicitudes/${solicitudId}`);
-  //       setData(response.data);
-  //       setNotas(response.data.notas_admin || '');
-  //     } catch (error) {
-  //       console.error("Error al obtener detalle:", error);
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
-  //   fetchSolicitud();
-  // }, [isOpen, solicitudId]);
-  
-  // const handleAccion = async (accion) => {
-  //   try {
-  //     await api.post(`/admin/solicitudes/${solicitudId}/${accion}`, { notas });
-  //     onClose(); // Cerrar y recargar la tabla principal
-  //   } catch(error) {
-  //     console.error("Error al actualizar estado", error);
-  //   }
-  // }
-
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
   useEffect(() => {
     if (!isOpen) return;
-    
-    setIsLoading(true);
-    const timer = setTimeout(() => {
+
+    let isMounted = true;
+
+    const cargarEstados = async () => {
+      try {
+        const catalogo = await getEstadosCatalogo();
+        if (isMounted) {
+          setEstadosCatalogo(catalogo);
+        }
+      } catch (error) {
+        console.error('Error al cargar el catálogo de estados:', error);
+        if (isMounted) {
+          setEstadosCatalogo([]);
+        }
+      }
+    };
+
+    cargarEstados();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (solicitudData) {
+      const estadoCatalogo = getEstadoNombrePorId(
+        estadosCatalogo,
+        getEstadoIdPorNombre(estadosCatalogo, solicitudData.estado_usuario) ?? solicitudData.id_estado,
+      );
+
       setData({
-        id: solicitudId || 'SOL-R002',
-        nombre_completo: 'Luis García López',
-        correo: 'luis.garcia@email.com',
-        telefono: '5556789012',
-        ciudad: 'Zapopan',
-        direccion: 'Calle 5 de Mayo #123',
-        rancho: 'Traspatio El Carmen',
-        capacidad: '50 animales',
-        superficie: '2 hectáreas',
+        id: solicitudData.id_usuario_display ?? solicitudData.id_usuario ?? solicitudId ?? 'SOL-R002',
+        nombre_completo: solicitudData.nombre_completo || 'Sin nombre',
+        correo: solicitudData.email || 'Sin correo',
+        telefono: solicitudData.telefono || 'Sin teléfono',
+        ciudad: solicitudData.ciudad || 'Sin ciudad',
+        direccion: solicitudData.ciudad ? `Ubicado en ${solicitudData.ciudad}` : 'Sin dirección',
+        rancho: solicitudData.tipo_rol || 'Sin tipo de usuario',
+        capacidad: estadoCatalogo || solicitudData.estado_usuario || 'Pendiente de revisión',
+        superficie: solicitudData.fecha_solicitud || 'Sin fecha',
         documentos: [
-          { nombre: 'Identificación Oficial (INE/Pasaporte)', url: '#' },
-          { nombre: 'Comprobante de Domicilio', url: '#' },
-          { nombre: 'Constancia de Residencia', url: '#' },
-          { nombre: 'Fotografías del Rancho', url: '#' },
-        ]
+          { nombre: 'Registro del sistema', url: '#' },
+          { nombre: 'Solicitud capturada', url: '#' },
+        ],
       });
       setNotas('');
       setIsLoading(false);
-    }, 400);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, [isOpen, solicitudId]);
+    setIsLoading(true);
+    setData(null);
+  }, [isOpen, solicitudData, solicitudId, estadosCatalogo]);
+
+  const estadoRechazadoId = getEstadoIdPorNombre(estadosCatalogo, 'Rechazado');
+  const estadoPendienteId = getEstadoIdPorNombre(estadosCatalogo, 'Pendiente de Revisión');
+  const estadoAprobadoId = getEstadoIdPorNombre(estadosCatalogo, 'Aprobado');
+
+  const cambiarEstado = async (nuevoEstadoNombre) => {
+    const nuevoEstadoId = getEstadoIdPorNombre(estadosCatalogo, nuevoEstadoNombre);
+
+    if (!nuevoEstadoId) {
+      console.error(`No se encontró el estado ${nuevoEstadoNombre} en el catálogo.`);
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await actualizarUsuarioAdministrador(solicitudId, { id_estado: nuevoEstadoId });
+      onUpdated?.();
+      onClose();
+    } catch (error) {
+      console.error(`Error al actualizar la solicitud a ${nuevoEstadoNombre}:`, error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -81,7 +105,6 @@ export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) 
         className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col font-serif shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Cabecera Sticky */}
         <div className="sticky top-0 bg-white border-b border-gray-100 p-6 flex items-center justify-between z-10 rounded-t-2xl shrink-0">
           <h2 className="text-2xl font-bold text-gray-900">
             Revisar Solicitud - {data?.id || '...'}
@@ -94,15 +117,13 @@ export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) 
           </button>
         </div>
 
-        {/* Cuerpo Scrolleable */}
         <div className="p-8 space-y-8 overflow-y-auto flex-1">
           {isLoading ? (
             <div className="flex justify-center items-center h-40 font-sans text-gray-500">
               Cargando información...
             </div>
-          ) : (
+          ) : data ? (
             <>
-              {/* Datos Personales */}
               <section>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Datos Personales</h3>
                 <div className="bg-[#F8F9FA] p-6 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 border border-gray-100">
@@ -129,7 +150,6 @@ export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) 
                 </div>
               </section>
 
-              {/* Información del Rancho */}
               <section>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Información del Rancho</h3>
                 <div className="bg-[#F8F9FA] p-6 rounded-xl grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8 border border-gray-100">
@@ -138,17 +158,16 @@ export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) 
                     <p className="text-base text-gray-900 font-medium">{data.rancho}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-sans mb-1">Capacidad (Animales)</p>
+                    <p className="text-xs text-gray-500 font-sans mb-1">Capacidad (Estado)</p>
                     <p className="text-base text-gray-900 font-medium">{data.capacidad}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 font-sans mb-1">Superficie (Hectáreas)</p>
+                    <p className="text-xs text-gray-500 font-sans mb-1">Fecha</p>
                     <p className="text-base text-gray-900 font-medium">{data.superficie}</p>
                   </div>
                 </div>
               </section>
 
-              {/* Documentación Adjunta */}
               <section>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Documentación Adjunta</h3>
                 <div className="space-y-3 font-sans">
@@ -163,7 +182,6 @@ export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) 
                 </div>
               </section>
 
-              {/* Notas del Administrador */}
               <section>
                 <h3 className="text-lg font-bold text-gray-900 mb-4">Notas del Administrador</h3>
                 <textarea
@@ -171,35 +189,39 @@ export default function ModalDetalleSolicitud({ isOpen, onClose, solicitudId }) 
                   onChange={(e) => setNotas(e.target.value)}
                   placeholder="Agrega tus observaciones sobre la revisión de esta solicitud..."
                   className="w-full h-32 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#5A3B2A] focus:border-[#5A3B2A] outline-none transition-all font-sans text-sm resize-none"
-                ></textarea>
+                />
               </section>
             </>
+          ) : (
+            <div className="flex justify-center items-center h-40 font-sans text-gray-500">
+              No hay información disponible para esta solicitud.
+            </div>
           )}
         </div>
 
-        {/* Footer (Botones de Acción) Sticky */}
-        {!isLoading && (
+        {!isLoading && data && (
           <div className="p-6 border-t border-gray-100 bg-white rounded-b-2xl shrink-0">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans">
               <button 
-                onClick={() => console.log('Rechazar')}
-                className="py-3 px-4 border border-red-500 text-red-600 rounded-xl hover:bg-red-50 text-sm font-semibold transition-colors flex justify-center items-center gap-2"
+                  onClick={() => cambiarEstado('Rechazado')}
+                  disabled={isSubmitting || !estadoRechazadoId}
+                  className="py-3 px-4 border border-red-500 text-red-600 rounded-xl hover:bg-red-50 text-sm font-semibold transition-colors flex justify-center items-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <XCircle className="w-5 h-5" />
                 Rechazar
               </button>
-              
               <button 
-                onClick={() => console.log('Pendiente')}
-                className="py-3 px-4 border border-yellow-500 text-yellow-600 rounded-xl hover:bg-yellow-50 text-sm font-semibold transition-colors flex justify-center items-center gap-2"
+                  onClick={() => cambiarEstado('Pendiente de Revisión')}
+                  disabled={isSubmitting || !estadoPendienteId}
+                  className="py-3 px-4 border border-yellow-500 text-yellow-600 rounded-xl hover:bg-yellow-50 text-sm font-semibold transition-colors flex justify-center items-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <Clock className="w-5 h-5" />
                 Dejar Pendiente
               </button>
-              
               <button 
-                onClick={() => console.log('Aprobar')}
-                className="py-3 px-4 bg-[#5A3B2A] hover:bg-[#4A2F22] text-white rounded-xl text-sm font-semibold transition-colors flex justify-center items-center gap-2 shadow-md"
+                  onClick={() => cambiarEstado('Aprobado')}
+                  disabled={isSubmitting || !estadoAprobadoId}
+                  className="py-3 px-4 bg-[#5A3B2A] hover:bg-[#4A2F22] text-white rounded-xl text-sm font-semibold transition-colors flex justify-center items-center gap-2 shadow-md disabled:cursor-not-allowed disabled:opacity-70"
               >
                 <CheckCircle className="w-5 h-5" />
                 Aprobar

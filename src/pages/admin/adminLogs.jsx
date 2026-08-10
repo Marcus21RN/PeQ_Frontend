@@ -1,82 +1,61 @@
-/* eslint-disable no-unused-vars */
-
 import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, ChevronDown } from 'lucide-react';
+import { getBitacoraSistema, getRolesCatalogo } from '../../services/apiAdmin/panelAdmin.js';
 
 export default function LogActividades() {
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const [logs, setLogs] = useState([]);
-  // const [stats, setStats] = useState({ todas: 0, creaciones: 0, actualizaciones: 0, desactivaciones: 0 });
-  // 
-  // useEffect(() => {
-  //   const fetchLogs = async () => {
-  //     try {
-  //       // Aquí podrías enviar parámetros de paginación y filtros
-  //       const res = await api.get('/admin/logs'); 
-  //       setLogs(res.data.lista);
-  //       setStats(res.data.estadisticas);
-  //     } catch (error) {
-  //       console.error("Error al cargar el log de actividades:", error);
-  //     }
-  //   };
-  //   fetchLogs();
-  // }, []);
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [tipoUsuario, setTipoUsuario] = useState('');
+  const [rolesCatalogo, setRolesCatalogo] = useState([]);
+  const [fechaDesde, setFechaDesde] = useState('');
+  const [fechaHasta, setFechaHasta] = useState('');
 
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
-  const mockStats = {
-    todas: 30,
-    creaciones: 14,
-    actualizaciones: 11,
-    desactivaciones: 5
+  const cargarLogs = async () => {
+    try {
+      const params = {};
+      if (tipoUsuario) params.id_rol = tipoUsuario;
+      if (fechaDesde) params.fecha_cambio_desde = fechaDesde;
+      if (fechaHasta) params.fecha_cambio_hasta = fechaHasta;
+
+      const data = await getBitacoraSistema(params);
+      setLogs(data);
+      setError(null);
+    } catch (requestError) {
+      console.error('Error al cargar el log de actividades admin:', requestError);
+      setError('No se pudo cargar la bitácora del sistema.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Reducido a 4 registros como solicitaste
-  const mockLogs = [
-    {
-      id: 1,
-      fechaHora: '13 mar 2026\n02:30 p.m.',
-      usuario: 'Carlos Mendoza García',
-      tipoUsuario: 'Rancho Comercial',
-      accion: 'Crear',
-      entidad: 'Animal',
-      detalles: 'Registró nuevo bovino "Res-001" para engorda',
-      ciudad: 'Guadalajara'
-    },
-    {
-      id: 2,
-      fechaHora: '13 mar 2026\n10:15 a.m.',
-      usuario: 'Luis García López',
-      tipoUsuario: 'Rancho Traspatio',
-      accion: 'Actualizar',
-      entidad: 'Información de Rancho',
-      detalles: 'Actualizó capacidad del rancho: 50 → 60 animales',
-      ciudad: 'Zapopan'
-    },
-    {
-      id: 3,
-      fechaHora: '12 mar 2026\n04:45 p.m.',
-      usuario: 'Dr. Ana López Martínez',
-      tipoUsuario: 'Veterinario',
-      accion: 'Crear',
-      entidad: 'Solicitud de Certificación',
-      detalles: 'Creó solicitud de certificación para animal ID: 12345',
-      ciudad: 'Ciudad de México'
-    },
-    {
-      id: 4,
-      fechaHora: '12 mar 2026\n01:20 p.m.',
-      usuario: 'María Rodríguez Castillo',
-      tipoUsuario: 'Rancho Comercial',
-      accion: 'Desactivar',
-      entidad: 'Animal',
-      detalles: 'Desactivó registro de bovino vendido "Res-045"',
-      ciudad: 'Monterrey'
-    }
-  ];
+  useEffect(() => {
+    cargarLogs();
+  }, [tipoUsuario, fechaDesde, fechaHasta]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const cargarRoles = async () => {
+      try {
+        const roles = await getRolesCatalogo();
+        if (!isMounted) return;
+        setRolesCatalogo(roles);
+      } catch (requestError) {
+        console.error('Error al cargar roles para bitácora:', requestError);
+        if (isMounted) {
+          setRolesCatalogo([]);
+        }
+      }
+    };
+
+    cargarRoles();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Función para renderizar el badge de la acción con los colores exactos de tu diseño
   const getAccionBadge = (accion) => {
@@ -87,10 +66,50 @@ export default function LogActividades() {
         return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">Actualizar</span>;
       case 'Desactivar': 
         return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">Desactivar</span>;
+      case 'Eliminar': 
+        return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">Eliminar</span>;
       default: 
         return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">{accion}</span>;
     }
   };
+
+  const logsFiltrados = logs.filter((log) => {
+    const search = searchTerm.trim().toLowerCase();
+    if (!search) return true;
+
+    return [
+      log.fecha_hora,
+      log.usuario_responsable,
+      log.tipo_usuario,
+      log.accion,
+      log.entidad,
+      log.detalles,
+      log.ciudad,
+    ].some((value) => (value || '').toLowerCase().includes(search));
+  });
+
+  const stats = {
+    todas: logs.length,
+    creaciones: logs.filter((log) => log.accion === 'Crear').length,
+    actualizaciones: logs.filter((log) => log.accion === 'Actualizar').length,
+    desactivaciones: logs.filter((log) => ['Desactivar', 'Eliminar'].includes(log.accion)).length,
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-16 text-center font-sans text-gray-500">
+        <p className="text-lg">Cargando bitácora...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto py-16 text-center font-sans text-red-600">
+        <p className="text-lg">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 font-serif">
@@ -108,7 +127,7 @@ export default function LogActividades() {
             <div className="w-2 h-2 rounded-full bg-white"></div>
             <span className="text-sm font-medium">Todas</span>
           </div>
-          <span className="text-3xl font-bold">{mockStats.todas}</span>
+          <span className="text-3xl font-bold">{stats.todas}</span>
         </div>
         
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
@@ -116,7 +135,7 @@ export default function LogActividades() {
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-sm font-medium text-gray-600">Creaciones</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.creaciones}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.creaciones}</span>
         </div>
 
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
@@ -124,7 +143,7 @@ export default function LogActividades() {
             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
             <span className="text-sm font-medium text-gray-600">Actualizaciones</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.actualizaciones}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.actualizaciones}</span>
         </div>
 
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
@@ -132,7 +151,7 @@ export default function LogActividades() {
             <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
             <span className="text-sm font-medium text-gray-600">Desactivaciones</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.desactivaciones}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.desactivaciones}</span>
         </div>
       </div>
 
@@ -145,6 +164,8 @@ export default function LogActividades() {
           </div>
           <input
             type="text"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
             className="w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#5A3B2A] focus:border-[#5A3B2A] outline-none text-sm"
             placeholder="Buscar por nombre o ID de usuario..."
           />
@@ -155,12 +176,13 @@ export default function LogActividades() {
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-gray-400" />
             <div className="relative">
-              <select className="appearance-none bg-white border border-gray-200 text-gray-700 py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5A3B2A] text-sm cursor-pointer">
+              <select value={tipoUsuario} onChange={(event) => setTipoUsuario(event.target.value)} className="appearance-none bg-white border border-gray-200 text-gray-700 py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5A3B2A] text-sm cursor-pointer">
                 <option value="">Tipo de Usuario...</option>
-                <option value="admin">Administrador</option>
-                <option value="comercial">Rancho Comercial</option>
-                <option value="traspatio">Rancho Traspatio</option>
-                <option value="vet">Veterinario</option>
+                {rolesCatalogo.map((rol) => (
+                  <option key={rol.id_rol} value={rol.id_rol}>
+                    {rol.nombre}
+                  </option>
+                ))}
               </select>
               <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                 <ChevronDown className="h-4 w-4" />
@@ -172,13 +194,20 @@ export default function LogActividades() {
             <Calendar className="h-5 w-5 text-gray-400" />
             <input 
               type="date" 
+              value={fechaDesde}
+              onChange={(event) => setFechaDesde(event.target.value)}
               className="border border-gray-200 text-gray-600 py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5A3B2A] text-sm"
             />
             <span className="text-gray-500 text-sm">hasta</span>
             <input 
               type="date" 
+              value={fechaHasta}
+              onChange={(event) => setFechaHasta(event.target.value)}
               className="border border-gray-200 text-gray-600 py-2.5 px-4 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#5A3B2A] text-sm"
             />
+            <button type="button" onClick={cargarLogs} className="px-4 py-2.5 rounded-xl bg-[#5A3B2A] text-white text-sm font-medium hover:bg-[#4A2F22]">
+              Aplicar filtros
+            </button>
           </div>
         </div>
       </div>
@@ -213,16 +242,16 @@ export default function LogActividades() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {mockLogs.map((log) => (
+              {logsFiltrados.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-6 whitespace-pre-line leading-relaxed">
-                    {log.fechaHora}
+                    {log.fecha_hora}
                   </td>
                   <td className="px-6 py-6 font-medium text-gray-900">
-                    <div className="w-28 wrap-break-word">{log.usuario}</div>
+                    <div className="w-28 wrap-break-word">{log.usuario_responsable}</div>
                   </td>
                   <td className="px-6 py-6">
-                    <div className="w-20 wrap-break-word">{log.tipoUsuario}</div>
+                    <div className="w-20 wrap-break-word">{log.tipo_usuario}</div>
                   </td>
                   <td className="px-6 py-6">
                     {getAccionBadge(log.accion)}
@@ -241,7 +270,7 @@ export default function LogActividades() {
         {/* Footer con Paginación */}
         <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-gray-500">
           <div>
-            Mostrando <span className="font-bold text-gray-900">1 a 4</span> de <span className="font-bold text-gray-900">30</span> actividades
+            Mostrando <span className="font-bold text-gray-900">1 a {logsFiltrados.length}</span> de <span className="font-bold text-gray-900">{logs.length}</span> actividades
           </div>
           
           {/* Paginador visual simulado basado en el diseño */}

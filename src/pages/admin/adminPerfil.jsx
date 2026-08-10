@@ -1,49 +1,61 @@
-/* eslint-disable no-unused-vars */
-
 import { useState, useEffect } from 'react';
 import { User, Shield, Lock, Clock, Edit } from 'lucide-react';
 import ModalCambiarContrasena from '../../components/adminComponents/cambiarContrasenaModal.jsx';
 import ModalEditarPerfil from '../../components/adminComponents/editarPerfilModal.jsx';
 import ModalSolicitudesCambio from '../../components/adminComponents/solicitudCambioModal.jsx';
+import { getPerfilAdministrador } from '../../services/apiAdmin/panelAdmin.js';
 
 export default function MiPerfil() {
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSolicitudModalOpen, setIsSolicitudModalOpen] = useState(false);
+  const [perfil, setPerfil] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const [perfil, setPerfil] = useState(null);
-  // useEffect(() => {
-  //   const fetchPerfil = async () => {
-  //     try {
-  //       const res = await api.get('/admin/perfil/me');
-  //       setPerfil(res.data);
-  //     } catch (error) {
-  //       console.error("Error al cargar perfil:", error);
-  //     }
-  //   };
-  //   fetchPerfil();
-  // }, []);
+  useEffect(() => {
+    let isMounted = true;
 
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
-  const mockPerfil = {
-    nombre: 'Carlos Alberto Reyes',
-    curp: 'REAC900520HDFYRL04',
-    correo: 'admin@sistema-ganado.gob.mx',
-    telefono: '5559001234',
-    rol_sistema: 'Administrador General',
-    miembro_desde: 'enero de 2023',
-    ultimo_acceso: '12 de marzo de 2026', // Based on the current date context
-    departamento: 'Regulación Pecuaria',
-    municipio: 'Guadalajara',
-    estado_geo: 'Jalisco',
-    estado_cuenta: 'Activo',
-    fecha_registro: '14 de enero de 2023'
-  };
+    const cargarPerfilAsync = async () => {
+      try {
+        const data = await getPerfilAdministrador();
+        if (!isMounted) return;
+        setPerfil(data);
+        setError(null);
+      } catch (requestError) {
+        console.error('Error al cargar el perfil admin:', requestError);
+        if (isMounted) {
+          setError('No se pudo cargar la información del perfil.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    cargarPerfilAsync();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 text-center font-sans text-gray-500">
+        <p className="text-lg">Cargando perfil...</p>
+      </div>
+    );
+  }
+
+  if (error || !perfil) {
+    return (
+      <div className="max-w-4xl mx-auto py-16 text-center font-sans text-red-600">
+        <p className="text-lg">{error || 'No se pudo obtener el perfil.'}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 font-serif pb-10">
@@ -58,15 +70,15 @@ export default function MiPerfil() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans">
         <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
           <p className="text-xs text-gray-400 mb-2">Rol del Sistema</p>
-          <p className="text-lg font-bold text-gray-900 font-serif">{mockPerfil.rol_sistema}</p>
+          <p className="text-lg font-bold text-gray-900 font-serif">{perfil.rol_sistema}</p>
         </div>
         <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
           <p className="text-xs text-gray-400 mb-2">Miembro Desde</p>
-          <p className="text-lg font-bold text-gray-900 font-serif">{mockPerfil.miembro_desde}</p>
+          <p className="text-lg font-bold text-gray-900 font-serif">{perfil.miembro_desde}</p>
         </div>
         <div className="bg-white border border-gray-100 p-6 rounded-2xl shadow-sm">
-          <p className="text-xs text-gray-400 mb-2">Último Acceso</p>
-          <p className="text-lg font-bold text-gray-900 font-serif">{mockPerfil.ultimo_acceso}</p>
+          <p className="text-xs text-gray-400 mb-2">Estatus de la Cuenta</p>
+          <p className="text-lg font-bold text-gray-900 font-serif">{perfil.estatus_cuenta}</p>
         </div>
       </div>
 
@@ -79,19 +91,19 @@ export default function MiPerfil() {
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-y-8 gap-x-6">
           <div>
             <p className="text-xs text-gray-400 font-sans mb-1">Nombre Completo</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.nombre}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-sans mb-1">CURP</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.curp}</p>
+            <p className="text-base text-gray-900 font-medium">{perfil.nombre_completo}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400 font-sans mb-1">Correo Electrónico</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.correo}</p>
+            <p className="text-base text-gray-900 font-medium">{perfil.email}</p>
           </div>
           <div>
             <p className="text-xs text-gray-400 font-sans mb-1">Teléfono</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.telefono}</p>
+            <p className="text-base text-gray-900 font-medium">{perfil.telefono}</p>
+          </div>
+          <div>
+            <p className="text-xs text-gray-400 font-sans mb-1">Ciudad</p>
+            <p className="text-base text-gray-900 font-medium">{perfil.ciudad}</p>
           </div>
         </div>
       </div>
@@ -106,31 +118,19 @@ export default function MiPerfil() {
           <div>
             <p className="text-xs text-gray-400 font-sans mb-1">Rol</p>
             <div className="flex items-center gap-3">
-              <p className="text-base text-gray-900 font-medium">{mockPerfil.rol_sistema}</p>
+              <p className="text-base text-gray-900 font-medium">{perfil.rol_sistema}</p>
               <span className="bg-[#EFEBE4] text-[#5A3B2A] px-2 py-0.5 rounded-full text-xs font-sans font-medium">
-                {mockPerfil.estado_cuenta}
+                {perfil.estatus_cuenta}
               </span>
             </div>
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-sans mb-1">Departamento</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.departamento}</p>
+            <p className="text-xs text-gray-400 font-sans mb-1">Ciudad</p>
+            <p className="text-base text-gray-900 font-medium">{perfil.ciudad}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-400 font-sans mb-1">Municipio</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.municipio}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-sans mb-1">Estado</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.estado_geo}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-sans mb-1">Fecha de Registro</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.fecha_registro}</p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-400 font-sans mb-1">Último Acceso</p>
-            <p className="text-base text-gray-900 font-medium">{mockPerfil.ultimo_acceso}</p>
+            <p className="text-xs text-gray-400 font-sans mb-1">Miembro Desde</p>
+            <p className="text-base text-gray-900 font-medium">{perfil.miembro_desde}</p>
           </div>
         </div>
       </div>
@@ -173,12 +173,27 @@ export default function MiPerfil() {
       <ModalSolicitudesCambio 
         isOpen={isSolicitudModalOpen} 
         onClose={() => setIsSolicitudModalOpen(false)} 
+        usuarioId={perfil.id_usuario}
       />
 
       <ModalEditarPerfil 
         isOpen={isEditModalOpen} 
         onClose={() => setIsEditModalOpen(false)} 
-        dataActual={mockPerfil} 
+        dataActual={perfil ? {
+          id_usuario: perfil.id_usuario,
+          nombre: perfil.nombre_completo,
+          curp: '',
+          correo: perfil.email,
+          telefono: perfil.telefono,
+          rol_sistema: perfil.rol_sistema,
+          miembro_desde: perfil.miembro_desde,
+          ultimo_acceso: perfil.miembro_desde,
+          departamento: perfil.ciudad,
+          municipio: perfil.ciudad,
+          estado_geo: perfil.ciudad,
+          fecha_registro: perfil.miembro_desde,
+        } : null}
+        onUpdated={cargarPerfil}
       />
 
     </div>

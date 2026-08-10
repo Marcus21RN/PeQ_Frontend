@@ -2,53 +2,53 @@
 // src/components/admin/ModalEditarPerfil.jsx
 import { useState, useEffect } from 'react';
 import { X, User, Shield, Lock, TriangleAlert } from 'lucide-react';
+import { actualizarUsuarioAdministrador } from '../../services/apiAdmin/panelAdmin.js';
 
-export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
+export default function ModalEditarPerfil({ isOpen, onClose, dataActual, onUpdated }) {
   const [formData, setFormData] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     if (dataActual) {
       setFormData(dataActual);
-    } else {
-      // Datos simulados por defecto (Mock Data) si no se pasan por props
-      setFormData({
-        nombre: 'Carlos Alberto Reyes',
-        curp: 'REAC900520HDFYRL04',
-        correo: 'admin@sistema-ganado.gob.mx',
-        telefono: '5559001234',
-        rol_sistema: 'Administrador General',
-        miembro_desde: 'enero de 2023',
-        ultimo_acceso: '12 de marzo de 2026',
-        departamento: 'Regulación Pecuaria',
-        municipio: 'Guadalajara',
-        estado_geo: 'Jalisco',
-        fecha_registro: '14 de enero de 2023'
-      });
+      setError('');
+      return;
     }
+    setFormData({});
   }, [dataActual, isOpen]);
-
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   try {
-  //     await api.post('/admin/perfil/solicitar-cambio', formData);
-  //     // Lógica para mostrar mensaje de éxito y cerrar el modal
-  //     onClose(); 
-  //   } catch (err) {
-  //     console.error('Error al enviar la solicitud de cambio', err);
-  //   }
-  // };
 
   const handleInputChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Simulando envío de cambios a revisión...", formData);
-    onClose();
+
+    if (!dataActual?.id_usuario) {
+      setError('No se pudo identificar el perfil a actualizar.');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      setError('');
+
+      await actualizarUsuarioAdministrador(dataActual.id_usuario, {
+        nombre_completo: formData.nombre || dataActual.nombre || '',
+        email: formData.correo || dataActual.correo || '',
+        telefono: formData.telefono || dataActual.telefono || '',
+        ciudad: formData.municipio || formData.departamento || formData.estado_geo || dataActual.municipio || dataActual.departamento || dataActual.estado_geo || '',
+      });
+
+      await onUpdated?.();
+      onClose();
+    } catch (requestError) {
+      console.error('Error al actualizar el perfil del administrador:', requestError);
+      setError('No se pudieron guardar los cambios del perfil.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -78,6 +78,11 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
 
         {/* Cuerpo Scrolleable del Formulario */}
         <div className="overflow-y-auto p-6 md:p-8 space-y-6 flex-1">
+          {error && (
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 font-sans">
+              {error}
+            </div>
+          )}
           
           {/* Alerta de Aprobación */}
           <div className="bg-[#FFF9E6] border border-[#FDE68A] p-4 rounded-xl flex items-start gap-3">
@@ -124,6 +129,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
                     name="nombre" 
                     value={formData.nombre || ''} 
                     onChange={handleInputChange} 
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5A3B2A] outline-none text-sm text-gray-900" 
                   />
                 </div>
@@ -142,6 +148,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
                     name="correo" 
                     value={formData.correo || ''} 
                     onChange={handleInputChange} 
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5A3B2A] outline-none text-sm text-gray-900" 
                   />
                 </div>
@@ -153,6 +160,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
                     name="telefono" 
                     value={formData.telefono || ''} 
                     onChange={handleInputChange} 
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5A3B2A] outline-none text-sm text-gray-900" 
                   />
                 </div>
@@ -184,6 +192,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
                     name="departamento" 
                     value={formData.departamento || ''} 
                     onChange={handleInputChange} 
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5A3B2A] outline-none text-sm text-gray-900" 
                   />
                 </div>
@@ -195,6 +204,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
                     name="municipio" 
                     value={formData.municipio || ''} 
                     onChange={handleInputChange} 
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5A3B2A] outline-none text-sm text-gray-900" 
                   />
                 </div>
@@ -206,6 +216,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
                     name="estado_geo" 
                     value={formData.estado_geo || ''} 
                     onChange={handleInputChange} 
+                    disabled={isSubmitting}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5A3B2A] outline-none text-sm text-gray-900" 
                   />
                 </div>
@@ -235,6 +246,7 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
           <button 
             type="button"
             onClick={onClose}
+            disabled={isSubmitting}
             className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium transition-colors flex items-center justify-center gap-2"
           >
             <X className="w-4 h-4" />
@@ -244,9 +256,10 @@ export default function ModalEditarPerfil({ isOpen, onClose, dataActual }) {
           <button 
             type="submit"
             form="form-editar-perfil"
-            className="px-8 py-2.5 bg-[#B89B8D] text-white rounded-lg hover:bg-[#A3887B] text-sm font-medium transition-colors flex items-center justify-center shadow-sm"
+            disabled={isSubmitting}
+            className="px-8 py-2.5 bg-[#B89B8D] text-white rounded-lg hover:bg-[#A3887B] text-sm font-medium transition-colors flex items-center justify-center shadow-sm disabled:cursor-not-allowed disabled:opacity-70"
           >
-            Enviar Cambios
+            {isSubmitting ? 'Guardando...' : 'Enviar Cambios'}
           </button>
 
         </div>

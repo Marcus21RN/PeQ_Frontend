@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff, X, ShieldCheck } from 'lucide-react';
+import { cambiarContrasenaAdministrador } from '../../services/apiAdmin/cambiarContrasena.js';
 
 export default function CambiarContrasenaModal({ isOpen, onClose }) {
 	const [form, setForm] = useState({ actual: '', nueva: '', confirmar: '' });
@@ -7,10 +8,11 @@ export default function CambiarContrasenaModal({ isOpen, onClose }) {
 	const [showNueva, setShowNueva] = useState(false);
 	const [showConfirmar, setShowConfirmar] = useState(false);
 	const [error, setError] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 
 	if (!isOpen) return null;
 
-	const handleSubmit = (event) => {
+	const handleSubmit = async (event) => {
 		event.preventDefault();
 
 		if (form.nueva.length < 8) {
@@ -23,8 +25,20 @@ export default function CambiarContrasenaModal({ isOpen, onClose }) {
 			return;
 		}
 
-		setError('');
-		onClose();
+		try {
+			setIsSubmitting(true);
+			setError('');
+			await cambiarContrasenaAdministrador({
+				contrasena_actual: form.actual,
+				contrasena_nueva: form.nueva,
+			});
+			onClose();
+		} catch (requestError) {
+			console.error('Error al cambiar la contraseña del administrador:', requestError);
+			setError('No se pudo actualizar la contraseña. Verifica tus datos e intenta de nuevo.');
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	return (
@@ -71,11 +85,11 @@ export default function CambiarContrasenaModal({ isOpen, onClose }) {
 					))}
 
 					<div className="flex gap-3 pt-2">
-						<button type="button" onClick={onClose} className="flex-1 rounded-xl border border-gray-300 px-5 py-3 text-sm font-medium text-[#111827] transition-colors hover:bg-gray-50">
+						<button type="button" onClick={onClose} disabled={isSubmitting} className="flex-1 rounded-xl border border-gray-300 px-5 py-3 text-sm font-medium text-[#111827] transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-70">
 							Cancelar
 						</button>
-						<button type="submit" className="flex-1 rounded-xl bg-[#5A3B2A] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#4A2F22]">
-							Actualizar Contraseña
+						<button type="submit" disabled={isSubmitting} className="flex-1 rounded-xl bg-[#5A3B2A] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#4A2F22] disabled:cursor-not-allowed disabled:opacity-70">
+							{isSubmitting ? 'Actualizando...' : 'Actualizar Contraseña'}
 						</button>
 					</div>
 				</form>

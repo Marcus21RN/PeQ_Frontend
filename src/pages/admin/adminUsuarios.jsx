@@ -1,69 +1,134 @@
-/* eslint-disable no-unused-vars */
 import { useState, useEffect } from 'react';
 import { Search, Filter, Eye } from 'lucide-react';
 import ModalRevisarUsuario from '../../components/adminComponents/revisarUsuarioModal.jsx';
+import { getEstadoIdPorNombre, getEstadosCatalogo, getUsuariosAdministracion } from '../../services/apiAdmin/panelAdmin.js';
 
 export default function GestionarUsuarios() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [usuarioSeleccionado, setUsuarioSeleccionado] = useState(null);
-  
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const [usuarios, setUsuarios] = useState([]);
-  // const [stats, setStats] = useState({ todos: 0, activos: 0, cambios: 0, rechazados: 0 });
-  // 
-  // useEffect(() => {
-  //   const fetchUsuarios = async () => {
-  //     try {
-  //       const res = await api.get('/admin/usuarios');
-  //       setUsuarios(res.data.lista);
-  //       setStats(res.data.estadisticas);
-  //     } catch (error) {
-  //       console.error("Error al cargar usuarios:", error);
-  //     }
-  //   };
-  //   fetchUsuarios();
-  // }, []);
+  const [usuarios, setUsuarios] = useState([]);
+  const [estadosCatalogo, setEstadosCatalogo] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
 
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
-  const mockStats = {
-    todos: 11,
-    activos: 6,
-    cambios: 4,
-    rechazados: 1
-  };
+  useEffect(() => {
+    let isMounted = true;
 
-  const mockUsuarios = [
-    { id: 'USR-010', nombre: 'Carlos Alberto Reyes', tipo: 'Administrador', email: 'admin@sistema-ganado.gob.mx', tel: '5559001234', estado: 'Activo', cambios: null },
-    { id: 'USR-001', nombre: 'Carlos Mendoza García', tipo: 'Rancho Comercial', email: 'carlos.mendoza@email.com', tel: '5551234567', estado: 'Actualización', cambios: 2 },
-    { id: 'USR-007', nombre: 'Dr. Ana López Martínez', tipo: 'Veterinario', email: 'ana.lopez@email.com', tel: '5559876543', estado: 'Activo', cambios: null },
-    { id: 'USR-008', nombre: 'Dr. Juan Carlos López', tipo: 'Veterinario', email: 'juancarlos.lopez@email.com', tel: '5557654123', estado: 'Actualización', cambios: 1 },
-    { id: 'USR-009', nombre: 'Dra. Sofía Díaz Morales', tipo: 'Veterinario', email: 'sofia.diaz@email.com', tel: '5552901234', estado: 'Activo', cambios: null },
-    { id: 'USR-003', nombre: 'Fernando Torres Jiménez', tipo: 'Rancho Comercial', email: 'fernando.torres@email.com', tel: '5557654321', estado: 'Rechazado', cambios: 1 },
-    { id: 'USR-011', nombre: 'Laura Hernández García', tipo: 'Administrador', email: 'laura.hernandez@sistema-ganado.gob.mx', tel: '5559012345', estado: 'Actualización', cambios: 2 },
-    { id: 'USR-004', nombre: 'Luis García López', tipo: 'Rancho Traspatio', email: 'luis.garcia@email.com', tel: '5556789012', estado: 'Activo', cambios: null },
-    { id: 'USR-002', nombre: 'María Rodríguez Castillo', tipo: 'Rancho Comercial', email: 'maria.rodriguez@email.com', tel: '5552876543', estado: 'Activo', cambios: null },
-    { id: 'USR-005', nombre: 'Patricia Gómez Herrera', tipo: 'Rancho Traspatio', email: 'patricia.gomez@email.com', tel: '5553456789', estado: 'Actualización', cambios: 1 },
-    { id: 'USR-006', nombre: 'Roberto Sánchez Flores', tipo: 'Rancho Traspatio', email: 'roberto.sanchez@email.com', tel: '5555432109', estado: 'Activo', cambios: null },
-  ];
+    const cargarUsuarios = async () => {
+      try {
+        const [data, estados] = await Promise.all([
+          getUsuariosAdministracion(),
+          getEstadosCatalogo().catch(() => []),
+        ]);
+        if (!isMounted) return;
+        setUsuarios(data);
+        setEstadosCatalogo(estados);
+        setError(null);
+      } catch (requestError) {
+        console.error('Error al cargar usuarios admin:', requestError);
+        if (isMounted) {
+          setError('No se pudo cargar la lista de usuarios.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const abrirModal = (id) => {
-    setUsuarioSeleccionado(id);
+    cargarUsuarios();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const abrirModal = (usuario) => {
+    setUsuarioSeleccionado(usuario);
     setIsModalOpen(true);
   };
 
+  const estadoActivoId = getEstadoIdPorNombre(estadosCatalogo, 'Activo');
+  const estadoPendienteId = getEstadoIdPorNombre(estadosCatalogo, 'Pendiente de Revisión');
+  const estadoEnRevisionId = getEstadoIdPorNombre(estadosCatalogo, 'En Revisión');
+  const estadoRechazadoId = getEstadoIdPorNombre(estadosCatalogo, 'Rechazado');
+
+  const getEstadoIdUsuario = (estado) => getEstadoIdPorNombre(estadosCatalogo, estado);
+
   // Funciones auxiliares para renderizar badges visuales
   const getEstadoBadge = (estado) => {
-    switch (estado) {
-      case 'Activo': return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Activo</span>;
-      case 'Actualización': return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">Actualización</span>;
-      case 'Rechazado': return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">Rechazado</span>;
-      default: return null;
+    const estadoId = getEstadoIdUsuario(estado);
+
+    if (estadoId === estadoActivoId) {
+      return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Activo</span>;
     }
+
+    if (estadoId === estadoPendienteId || estadoId === estadoEnRevisionId) {
+      return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-medium">Pendiente de revisión</span>;
+    }
+
+    if (estadoId === estadoRechazadoId) {
+      return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">Rechazado</span>;
+    }
+
+    return estado ? <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">{estado}</span> : null;
   };
+
+  const estadoOpciones = [
+    { value: 'todos', label: 'Todos' },
+    ...estadosCatalogo,
+  ];
+
+  const usuariosFiltrados = usuarios.filter((usuario) => {
+    const search = searchTerm.trim().toLowerCase();
+    const coincideBusqueda = !search || [
+      usuario.id_usuario_display,
+      usuario.nombre_completo,
+      usuario.tipo_rol,
+      usuario.email,
+      usuario.telefono,
+      usuario.estado_usuario,
+      usuario.ciudad,
+    ].some((value) => (value || '').toLowerCase().includes(search));
+
+    if (!coincideBusqueda) {
+      return false;
+    }
+
+    if (estadoFiltro === 'todos') {
+      return true;
+    }
+
+    return String(getEstadoIdUsuario(usuario.estado_usuario)) === String(estadoFiltro);
+  });
+
+  const stats = {
+    todos: usuarios.length,
+    activos: usuarios.filter((usuario) => String(getEstadoIdUsuario(usuario.estado_usuario)) === String(estadoActivoId)).length,
+    cambios: usuarios.filter((usuario) => {
+      const estadoId = getEstadoIdUsuario(usuario.estado_usuario);
+      return String(estadoId) === String(estadoPendienteId) || String(estadoId) === String(estadoEnRevisionId);
+    }).length,
+    rechazados: usuarios.filter((usuario) => String(getEstadoIdUsuario(usuario.estado_usuario)) === String(estadoRechazadoId)).length,
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-16 text-center font-sans text-gray-500">
+        <p className="text-lg">Cargando usuarios...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto py-16 text-center font-sans text-red-600">
+        <p className="text-lg">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 font-serif">
@@ -81,7 +146,7 @@ export default function GestionarUsuarios() {
             <div className="w-2 h-2 rounded-full bg-white"></div>
             <span className="text-sm font-medium">Todos</span>
           </div>
-          <span className="text-3xl font-bold">{mockStats.todos}</span>
+          <span className="text-3xl font-bold">{stats.todos}</span>
         </div>
         
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50">
@@ -89,7 +154,7 @@ export default function GestionarUsuarios() {
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-sm font-medium text-gray-600">Activos</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.activos}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.activos}</span>
         </div>
 
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50">
@@ -97,7 +162,7 @@ export default function GestionarUsuarios() {
             <div className="w-2 h-2 rounded-full bg-yellow-400"></div>
             <span className="text-sm font-medium text-gray-600">Con Cambios</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.cambios}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.cambios}</span>
         </div>
 
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50">
@@ -105,7 +170,7 @@ export default function GestionarUsuarios() {
             <div className="w-2 h-2 rounded-full bg-red-500"></div>
             <span className="text-sm font-medium text-gray-600">Rechazados</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.rechazados}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.rechazados}</span>
         </div>
       </div>
 
@@ -117,10 +182,23 @@ export default function GestionarUsuarios() {
           </div>
           <input
             type="text"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#5A3B2A] focus:border-[#5A3B2A] outline-none"
             placeholder="Buscar por ID, nombre, email..."
           />
         </div>
+        <select
+          value={estadoFiltro}
+          onChange={(event) => setEstadoFiltro(event.target.value)}
+          className="px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-700 focus:ring-2 focus:ring-[#5A3B2A] focus:border-[#5A3B2A] outline-none"
+        >
+          {estadoOpciones.map((estado) => (
+            <option key={estado.value ?? estado.id_estado} value={estado.value ?? estado.id_estado}>
+              {estado.label ?? estado.nombre}
+            </option>
+          ))}
+        </select>
         <button className="px-4 py-3 border border-gray-200 bg-white rounded-xl text-gray-600 hover:bg-gray-50 flex items-center justify-center">
           <Filter className="h-5 w-5" />
         </button>
@@ -143,19 +221,19 @@ export default function GestionarUsuarios() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {mockUsuarios.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-gray-900">{user.id}</td>
-                  <td className="px-6 py-4 font-medium text-gray-900">{user.nombre}</td>
-                  <td className="px-6 py-4">{user.tipo}</td>
+              {usuariosFiltrados.map((user) => (
+                <tr key={user.id_usuario ?? user.id_usuario_display} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">{user.id_usuario_display}</td>
+                  <td className="px-6 py-4 font-medium text-gray-900">{user.nombre_completo}</td>
+                  <td className="px-6 py-4">{user.tipo_rol}</td>
                   <td className="px-6 py-4">{user.email}</td>
-                  <td className="px-6 py-4">{user.tel}</td>
-                  <td className="px-6 py-4">{getEstadoBadge(user.estado)}</td>
+                  <td className="px-6 py-4">{user.telefono}</td>
+                  <td className="px-6 py-4">{getEstadoBadge(user.estado_usuario)}</td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
-                      {user.cambios ? (
+                      {user.solicitudes_cambio ? (
                         <span className="flex items-center justify-center w-6 h-6 bg-[#FFF4D2] text-[#8B6E00] rounded-full text-xs font-bold">
-                          {user.cambios}
+                          {user.solicitudes_cambio}
                         </span>
                       ) : (
                         <span className="text-gray-400">—</span>
@@ -165,7 +243,7 @@ export default function GestionarUsuarios() {
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <button 
-                        onClick={() => abrirModal(user.id)}
+                        onClick={() => abrirModal(user)}
                         className="bg-[#5A3B2A] hover:bg-[#4A2F22] text-white px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors"
                       >
                         <Eye className="w-4 h-4" />
@@ -181,7 +259,7 @@ export default function GestionarUsuarios() {
         
         {/* Footer de la Tabla */}
         <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-4 flex items-center justify-between text-sm text-gray-500">
-          Mostrando <span className="font-bold text-gray-900 mx-1">11</span> de <span className="font-bold text-gray-900 mx-1">11</span> usuarios
+          Mostrando <span className="font-bold text-gray-900 mx-1">{usuariosFiltrados.length}</span> de <span className="font-bold text-gray-900 mx-1">{usuarios.length}</span> usuarios
         </div>
       </div>
 
@@ -189,7 +267,8 @@ export default function GestionarUsuarios() {
       <ModalRevisarUsuario 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        usuarioId={usuarioSeleccionado}
+        usuarioId={usuarioSeleccionado?.id_usuario ?? usuarioSeleccionado?.id_usuario_display}
+        usuarioData={usuarioSeleccionado}
       />
       
     </div>

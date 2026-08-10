@@ -1,65 +1,133 @@
-/* eslint-disable no-unused-vars */
-
 import { useState, useEffect } from 'react';
 import { Search, Filter, Eye } from 'lucide-react';
 import ModalDetalleSolicitud from '../../components/adminComponents/detalleSolicitudModal.jsx';
+import { getEstadoIdPorNombre, getEstadosCatalogo, getSolicitudesRegistro } from '../../services/apiAdmin/panelAdmin.js';
 
 export default function TodasLasSolicitudes() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [solicitudSeleccionada, setSolicitudSeleccionada] = useState(null);
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [estadosCatalogo, setEstadosCatalogo] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [estadoFiltro, setEstadoFiltro] = useState('todos');
 
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const [solicitudes, setSolicitudes] = useState([]);
-  // const [stats, setStats] = useState({ todas: 0, pendientes: 0, aprobadas: 0, rechazadas: 0 });
-  // 
-  // useEffect(() => {
-  //   const fetchSolicitudes = async () => {
-  //     try {
-  //       const res = await api.get('/admin/solicitudes');
-  //       setSolicitudes(res.data.lista);
-  //       setStats(res.data.estadisticas);
-  //     } catch (error) {
-  //       console.error("Error al cargar solicitudes:", error);
-  //     }
-  //   };
-  //   fetchSolicitudes();
-  // }, []);
+  useEffect(() => {
+    let isMounted = true;
 
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
-  const mockStats = {
-    todas: 7,
-    pendientes: 4,
-    aprobadas: 2,
-    rechazadas: 1
-  };
+    const cargarSolicitudesAsync = async () => {
+      try {
+        const [data, estados] = await Promise.all([
+          getSolicitudesRegistro(),
+          getEstadosCatalogo().catch(() => []),
+        ]);
+        if (!isMounted) return;
+        setSolicitudes(data);
+        setEstadosCatalogo(estados);
+        setError(null);
+      } catch (requestError) {
+        console.error('Error al cargar solicitudes admin:', requestError);
+        if (isMounted) {
+          setError('No se pudo cargar la lista de solicitudes.');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
 
-  const mockSolicitudes = [
-    { id: 'SOL-R002', tipo: 'Rancho Traspatio', nombre: 'Luis García López', email: 'luis.garcia@email.com', tel: '5556789012', fecha: '21 feb 2026', estado: 'Pendiente' },
-    { id: 'SOL-V001', tipo: 'Veterinario', nombre: 'Dr. Ana López Martínez', email: 'ana.lopez@email.com', tel: '5559876543', fecha: '20 feb 2026', estado: 'Pendiente' },
-    { id: 'SOL-R001', tipo: 'Rancho Comercial', nombre: 'Carlos Mendoza García', email: 'carlos.mendoza@email.com', tel: '5551234567', fecha: '19 feb 2026', estado: 'Pendiente' },
-    { id: 'SOL-R005', tipo: 'Rancho Comercial', nombre: 'Fernando Torres Jiménez', email: 'fernando.torres@email.com', tel: '5557654321', fecha: '17 feb 2026', estado: 'Pendiente' },
-    { id: 'SOL-R003', tipo: 'Rancho Comercial', nombre: 'María Rodríguez Castillo', email: 'maria.rodriguez@email.com', tel: '5552876543', fecha: '9 feb 2026', estado: 'Aprobada' },
-    { id: 'SOL-V002', tipo: 'Veterinario', nombre: 'Dr. Roberto Sánchez Flores', email: 'roberto.sanchez@email.com', tel: '5555432109', fecha: '4 feb 2026', estado: 'Rechazada' },
-    { id: 'SOL-R004', tipo: 'Rancho Traspatio', nombre: 'Patricia Gómez Herrera', email: 'patricia.gomez@email.com', tel: '5553456789', fecha: '24 ene 2026', estado: 'Aprobada' },
-  ];
+    cargarSolicitudesAsync();
 
-  const abrirModal = (id) => {
-    setSolicitudSeleccionada(id);
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const abrirModal = (solicitud) => {
+    setSolicitudSeleccionada(solicitud);
     setIsModalOpen(true);
   };
 
+  const estadoPendienteId = getEstadoIdPorNombre(estadosCatalogo, 'Pendiente de Revisión');
+  const estadoEnRevisionId = getEstadoIdPorNombre(estadosCatalogo, 'En Revisión');
+  const estadoAprobadoId = getEstadoIdPorNombre(estadosCatalogo, 'Aprobado');
+  const estadoRechazadoId = getEstadoIdPorNombre(estadosCatalogo, 'Rechazado');
+
+  const getEstadoIdSolicitud = (estado) => getEstadoIdPorNombre(estadosCatalogo, estado);
+
   const getEstadoBadge = (estado) => {
-    switch (estado) {
-      case 'Pendiente': return <span className="bg-[#FFF4D2] text-[#8B6E00] px-3 py-1 rounded-full text-xs font-medium">Pendiente</span>;
-      case 'Aprobada': return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Aprobada</span>;
-      case 'Rechazada': return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">Rechazada</span>;
-      default: return null;
+    const estadoId = getEstadoIdSolicitud(estado);
+
+    if (String(estadoId) === String(estadoPendienteId) || String(estadoId) === String(estadoEnRevisionId)) {
+      return <span className="bg-[#FFF4D2] text-[#8B6E00] px-3 py-1 rounded-full text-xs font-medium">Pendiente de revisión</span>;
     }
+
+    if (String(estadoId) === String(estadoAprobadoId)) {
+      return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Aprobado</span>;
+    }
+
+    if (String(estadoId) === String(estadoRechazadoId)) {
+      return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-medium">Rechazado</span>;
+    }
+
+    return estado ? <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">{estado}</span> : null;
   };
+
+  const estadoOpciones = [
+    { value: 'todos', label: 'Todos' },
+    ...estadosCatalogo,
+  ];
+
+  const solicitudesFiltradas = solicitudes.filter((solicitud) => {
+    const search = searchTerm.trim().toLowerCase();
+    const coincideBusqueda = !search || [
+      solicitud.id_usuario_display,
+      solicitud.nombre_completo,
+      solicitud.tipo_rol,
+      solicitud.email,
+      solicitud.telefono,
+      solicitud.estado_usuario,
+      solicitud.fecha_solicitud,
+    ].some((value) => (value || '').toLowerCase().includes(search));
+
+    if (!coincideBusqueda) {
+      return false;
+    }
+
+    if (estadoFiltro === 'todos') {
+      return true;
+    }
+
+    return String(getEstadoIdSolicitud(solicitud.estado_usuario)) === String(estadoFiltro);
+  });
+
+  const stats = {
+    todas: solicitudes.length,
+    pendientes: solicitudes.filter((solicitud) => {
+      const estadoId = getEstadoIdSolicitud(solicitud.estado_usuario);
+      return String(estadoId) === String(estadoPendienteId) || String(estadoId) === String(estadoEnRevisionId);
+    }).length,
+    aprobadas: solicitudes.filter((solicitud) => String(getEstadoIdSolicitud(solicitud.estado_usuario)) === String(estadoAprobadoId)).length,
+    rechazadas: solicitudes.filter((solicitud) => String(getEstadoIdSolicitud(solicitud.estado_usuario)) === String(estadoRechazadoId)).length,
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto py-16 text-center font-sans text-gray-500">
+        <p className="text-lg">Cargando solicitudes...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto py-16 text-center font-sans text-red-600">
+        <p className="text-lg">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 font-serif">
@@ -77,7 +145,7 @@ export default function TodasLasSolicitudes() {
             <div className="w-2 h-2 rounded-full bg-white"></div>
             <span className="text-sm font-medium">Todas</span>
           </div>
-          <span className="text-3xl font-bold">{mockStats.todas}</span>
+          <span className="text-3xl font-bold">{stats.todas}</span>
         </div>
         
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50">
@@ -85,7 +153,7 @@ export default function TodasLasSolicitudes() {
             <div className="w-2 h-2 rounded-full bg-[#EAB308]"></div>
             <span className="text-sm font-medium text-gray-600">Pendientes</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.pendientes}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.pendientes}</span>
         </div>
 
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50">
@@ -93,7 +161,7 @@ export default function TodasLasSolicitudes() {
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-sm font-medium text-gray-600">Aprobadas</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.aprobadas}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.aprobadas}</span>
         </div>
 
         <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50">
@@ -101,7 +169,7 @@ export default function TodasLasSolicitudes() {
             <div className="w-2 h-2 rounded-full bg-red-500"></div>
             <span className="text-sm font-medium text-gray-600">Rechazadas</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.rechazadas}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.rechazadas}</span>
         </div>
       </div>
 
@@ -113,10 +181,23 @@ export default function TodasLasSolicitudes() {
           </div>
           <input
             type="text"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
             className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-[#5A3B2A] focus:border-[#5A3B2A] outline-none"
             placeholder="Buscar por ID, nombre, email..."
           />
         </div>
+        <select
+          value={estadoFiltro}
+          onChange={(event) => setEstadoFiltro(event.target.value)}
+          className="px-4 py-3 border border-gray-200 rounded-xl bg-white text-gray-700 focus:ring-2 focus:ring-[#5A3B2A] focus:border-[#5A3B2A] outline-none"
+        >
+          {estadoOpciones.map((estado) => (
+            <option key={estado.value ?? estado.id_estado} value={estado.value ?? estado.id_estado}>
+              {estado.label ?? estado.nombre}
+            </option>
+          ))}
+        </select>
         <button className="px-4 py-3 border border-gray-200 bg-white rounded-xl text-gray-600 hover:bg-gray-50 flex items-center justify-center">
           <Filter className="h-5 w-5" />
         </button>
@@ -139,25 +220,25 @@ export default function TodasLasSolicitudes() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {mockSolicitudes.map((sol) => (
-                <tr key={sol.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 font-bold text-gray-900">{sol.id}</td>
+              {solicitudesFiltradas.map((sol) => (
+                <tr key={sol.id_usuario ?? sol.id_usuario_display} className="hover:bg-gray-50/50 transition-colors">
+                  <td className="px-6 py-4 font-bold text-gray-900">{sol.id_usuario_display}</td>
                   <td className="px-6 py-4">
-                    <div className="w-24 wrap-break-word">{sol.tipo}</div>
+                    <div className="w-24 wrap-break-word">{sol.tipo_rol}</div>
                   </td>
                   <td className="px-6 py-4 font-medium text-gray-900">
-                    <div className="w-32 wrap-break-word">{sol.nombre}</div>
+                    <div className="w-32 wrap-break-word">{sol.nombre_completo}</div>
                   </td>
                   <td className="px-6 py-4">{sol.email}</td>
-                  <td className="px-6 py-4">{sol.tel}</td>
+                  <td className="px-6 py-4">{sol.telefono}</td>
                   <td className="px-6 py-4">
-                    <div className="w-16 wrap-break-word">{sol.fecha}</div>
+                    <div className="w-16 wrap-break-word">{sol.fecha_solicitud}</div>
                   </td>
-                  <td className="px-6 py-4">{getEstadoBadge(sol.estado)}</td>
+                  <td className="px-6 py-4">{getEstadoBadge(sol.estado_usuario)}</td>
                   <td className="px-6 py-4">
                     <div className="flex justify-center">
                       <button 
-                        onClick={() => abrirModal(sol.id)}
+                        onClick={() => abrirModal(sol)}
                         className="bg-[#5A3B2A] hover:bg-[#4A2F22] text-white px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-2 transition-colors"
                       >
                         <Eye className="w-4 h-4" />
@@ -173,14 +254,28 @@ export default function TodasLasSolicitudes() {
         
         {/* Footer */}
         <div className="bg-gray-50/50 border-t border-gray-100 px-6 py-4 flex items-center justify-between text-sm text-gray-500">
-          Mostrando <span className="font-bold text-gray-900 mx-1">7</span> de <span className="font-bold text-gray-900 mx-1">7</span> solicitudes
+          Mostrando <span className="font-bold text-gray-900 mx-1">{solicitudesFiltradas.length}</span> de <span className="font-bold text-gray-900 mx-1">{solicitudes.length}</span> solicitudes
         </div>
       </div>
 
       <ModalDetalleSolicitud 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        solicitudId={solicitudSeleccionada}
+        solicitudId={solicitudSeleccionada?.id_usuario ?? solicitudSeleccionada?.id_usuario_display}
+        solicitudData={solicitudSeleccionada}
+        onUpdated={async () => {
+          setLoading(true);
+          try {
+            const [data, estados] = await Promise.all([
+              getSolicitudesRegistro(),
+              getEstadosCatalogo().catch(() => estadosCatalogo),
+            ]);
+            setSolicitudes(data);
+            setEstadosCatalogo(estados);
+          } finally {
+            setLoading(false);
+          }
+        }}
       />
       
     </div>
