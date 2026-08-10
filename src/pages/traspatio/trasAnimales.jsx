@@ -1,4 +1,3 @@
-
 // src/pages/traspatio/trasAnimales.jsx
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
@@ -26,20 +25,38 @@ export default function MisAnimales() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [estadoFiltro, setEstadoFiltro] = useState('');
 
-  // Carga inicial
+  // Función para recargar lista sin invocar setLoading(true) síncrono
+  const cargarAnimalesSinSpinner = async () => {
+    try {
+      const data = await getAnimalesProductor({ skip: 0, limit: 200 });
+      setAnimales(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Error cargando animales:', err);
+    }
+  };
+
+  // Carga inicial de datos
   useEffect(() => {
-    const fetchAnimales = async () => {
-      setLoading(true);
-      try {
-        const data = await getAnimalesProductor({ skip: 0, limit: 200 });
-        setAnimales(Array.isArray(data) ? data : []);
-      } catch (err) {
+    let isMounted = true;
+
+    getAnimalesProductor({ skip: 0, limit: 200 })
+      .then((data) => {
+        if (isMounted) {
+          setAnimales(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((err) => {
         console.error('Error cargando animales del productor:', err);
-      } finally {
-        setLoading(false);
-      }
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
     };
-    fetchAnimales();
   }, []);
 
   // Debounce input búsqueda
@@ -58,7 +75,7 @@ export default function MisAnimales() {
     return Object.keys(map).map((k) => ({ label: k, value: map[k] }));
   }, [animales]);
 
-  // Filtrado
+  // Filtrado de la tabla
   const animalesFiltrados = useMemo(() => {
     if (!animales || animales.length === 0) return [];
 
@@ -140,9 +157,12 @@ export default function MisAnimales() {
   const getEstadoBadge = (estado) => {
     if (!estado) return null;
     const e = String(estado).toLowerCase();
-    if (e.includes('cert') || e.includes('registr')) return <span className="bg-[#EAF3E6] text-[#5C743D] px-3 py-1 rounded-full text-xs font-bold">Certificado</span>;
-    if (e.includes('rev') || e.includes('revis')) return <span className="bg-[#FFF4E5] text-[#D97706] px-3 py-1 rounded-full text-xs font-bold">En Revisión</span>;
-    if (e.includes('pend')) return <span className="bg-[#F0F2E8] text-[#7A8A61] px-3 py-1 rounded-full text-xs font-bold">Pendiente</span>;
+    if (e.includes('cert') || e.includes('registr') || e.includes('aprob')) 
+      return <span className="bg-[#EAF3E6] text-[#5C743D] px-3 py-1 rounded-full text-xs font-bold">Certificado</span>;
+    if (e.includes('rev') || e.includes('revis')) 
+      return <span className="bg-[#FFF4E5] text-[#D97706] px-3 py-1 rounded-full text-xs font-bold">En Revisión</span>;
+    if (e.includes('pend')) 
+      return <span className="bg-[#F0F2E8] text-[#7A8A61] px-3 py-1 rounded-full text-xs font-bold">Pendiente</span>;
     return <span className="bg-[#F5F5F5] text-gray-700 px-3 py-1 rounded-full text-xs">{estado}</span>;
   };
 
@@ -156,7 +176,7 @@ export default function MisAnimales() {
         <p className="text-gray-500 mt-2 font-sans">Gestiona y consulta el estado de tus animales registrados</p>
       </div>
 
-      {/* Cajas Superiores */}
+      {/* Cajas Superiores por Especie */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 font-sans">
         {tipoCounts.length === 0 ? (
           <div className="col-span-6 text-gray-500">No hay tipos registrados</div>
@@ -165,7 +185,9 @@ export default function MisAnimales() {
             <button
               key={i}
               onClick={() => handleSelectTipo(f.label)}
-              className={`rounded-xl p-4 text-center shadow-sm border ${tipoActual === f.label.toLowerCase() ? 'border-[#3B2211] bg-[#F3F6F1]' : 'border-gray-200 bg-white'} hover:bg-gray-50 transition-colors`}
+              className={`rounded-xl p-4 text-center shadow-sm border ${
+                tipoActual === f.label.toLowerCase() ? 'border-[#3B2211] bg-[#F3F6F1]' : 'border-gray-200 bg-white'
+              } hover:bg-gray-50 transition-colors`}
             >
               <p className="text-xs text-gray-500 mb-1">{f.label}</p>
               <p className="text-xl font-bold text-[#3B2211]">{f.value}</p>
@@ -247,11 +269,14 @@ export default function MisAnimales() {
                     <td className="px-6 py-4">{a.edad_anios != null ? `${a.edad_anios} años` : (a.edad || 'N/A')}</td>
                     <td className="px-6 py-4">{a.peso_kg != null ? `${a.peso_kg} kg` : (a.peso || 'N/A')}</td>
                     <td className="px-6 py-4">{getEstadoBadge(a.estado_certificacion || a.estado)}</td>
-                    <td className="px-6 py-4 font-semibold">{a.precio_estimado != null ? `$${a.precio_estimado}` : (a.precio || 'N/A')}</td>
-                    <td className="px-6 py-4 text-gray-500">{a.fecha_registro ? new Date(a.fecha_registro).toLocaleDateString() : (a.fecha || '-')}</td>
+                    <td className="px-6 py-4 font-semibold">
+                      {a.precio_estimado != null ? `$${Number(a.precio_estimado).toLocaleString('es-MX')}` : (a.precio || 'N/A')}
+                    </td>
+                    <td className="px-6 py-4 text-gray-500">
+                      {a.fecha_registro ? new Date(a.fecha_registro).toLocaleDateString('es-MX') : (a.fecha || '-')}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="flex justify-center items-center gap-3">
-                        {/* AQUÍ PASAMOS EL ARETE_ID SI EXISTE */}
                         <button 
                           onClick={() => abrirDetalle(a.arete_id || a.id_animal || a.id)} 
                           className="text-[#5C743D] hover:text-[#3B2211] transition-colors" 
@@ -259,7 +284,11 @@ export default function MisAnimales() {
                         >
                           <Eye className="w-5 h-5" />
                         </button>
-                        <button onClick={() => abrirEditar(a)} className="text-[#D97706] hover:text-[#3B2211] transition-colors" title="Editar Animal">
+                        <button 
+                          onClick={() => abrirEditar(a)} 
+                          className="text-[#D97706] hover:text-[#3B2211] transition-colors" 
+                          title="Editar Animal"
+                        >
                           <Edit2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -272,7 +301,7 @@ export default function MisAnimales() {
         </div>
       </div>
 
-      {/* KPI Footer */}
+      {/* Tarjetas Inferiores de KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-sans">
         <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
           <p className="text-sm text-gray-500 mb-1 font-serif">Total Registrados</p>
@@ -280,11 +309,15 @@ export default function MisAnimales() {
         </div>
         <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
           <p className="text-sm text-gray-500 mb-1 font-serif">Certificados</p>
-          <p className="text-3xl font-bold text-[#5C743D] font-serif">{animales.filter(a => String(a.estado_certificacion || a.estado || '').toLowerCase().includes('cert') || String(a.estado_certificacion || a.estado || '').toLowerCase().includes('registr')).length}</p>
+          <p className="text-3xl font-bold text-[#5C743D] font-serif">
+            {animales.filter(a => String(a.estado_certificacion || a.estado || '').toLowerCase().includes('cert') || String(a.estado_certificacion || a.estado || '').toLowerCase().includes('registr') || String(a.estado_certificacion || a.estado || '').toLowerCase().includes('aprob')).length}
+          </p>
         </div>
         <div className="bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
           <p className="text-sm text-gray-500 mb-1 font-serif">En Revisión</p>
-          <p className="text-3xl font-bold text-[#D97706] font-serif">{animales.filter(a => String(a.estado_certificacion || a.estado || '').toLowerCase().includes('rev')).length}</p>
+          <p className="text-3xl font-bold text-[#D97706] font-serif">
+            {animales.filter(a => String(a.estado_certificacion || a.estado || '').toLowerCase().includes('rev')).length}
+          </p>
         </div>
       </div>
 
@@ -298,6 +331,7 @@ export default function MisAnimales() {
       <ModalRegistrarAnimal 
         isOpen={isRegistrarModalOpen}
         onClose={() => setIsRegistrarModalOpen(false)}
+        onRegistrado={cargarAnimalesSinSpinner}
       />
       
       <ModalEditarAnimal 
@@ -305,6 +339,7 @@ export default function MisAnimales() {
         onClose={() => setIsEditarModalOpen(false)}
         animalId={animalParaEditar?.id_display}
         dataActual={animalParaEditar}
+        onActualizado={cargarAnimalesSinSpinner}
       />
 
     </div>

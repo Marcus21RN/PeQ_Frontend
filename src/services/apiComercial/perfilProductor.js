@@ -4,7 +4,7 @@ import api from '../api';
  * Consulta la información del perfil del productor comercial
  */
 export async function getPerfilProductor() {
-  const response = await api.get('/traspatio/perfil/');
+  const response = await api.get('/comercial/perfil/');
   return response.data;
 }
 
@@ -12,7 +12,7 @@ export async function getPerfilProductor() {
  * Consulta los documentos subidos por el productor comercial
  */
 export async function getDocumentosProductor() {
-  const response = await api.get('/traspatio/documentos/');
+  const response = await api.get('/comercial/documentos/');
   return response.data;
 }
 
