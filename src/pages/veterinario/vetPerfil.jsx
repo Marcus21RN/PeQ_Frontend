@@ -1,40 +1,63 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BookText, Clock, FileText, Lock, Pencil, Stethoscope, User } from 'lucide-react';
 
 import CambiarContrasenaModal from '../../components/veterinarioComponents/cambiarContrasenaModal.jsx';
 import SolicitudesCambioModal from '../../components/veterinarioComponents/solicitudCambioModal.jsx';
 import EditarPerfilModal from '../../components/veterinarioComponents/editarPerfilModal.jsx';
+import { getPerfilDetallado } from '../../services/apiVeterinario/solicitudesPanel.js';
+import { getDocumentosSubidos } from '../../services/apiVeterinario/solicitudesPanel.js';
+
+
 
 export default function VetPerfil() {
 	const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 	const [isSolicitudesModalOpen, setIsSolicitudesModalOpen] = useState(false);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	
+	const [perfil, setPerfil] = useState(null);
+	const [loading, setLoading] = useState(true);
 
-	const perfil = {
-		nombre: 'Dr. Alberto Méndez Ruiz',
-		correo: 'alberto.mendez@email.com',
-		telefono: '5554567890',
-		curp: 'MERA880315HDFRBL05',
-		cedula: '9876543',
-		universidad: 'Universidad Nacional Autónoma de México (UNAM)',
-		especialidad: 'Medicina Veterinaria y Zootecnia',
-		experiencia: '8 años',
-		municipio: 'Guadalajara',
-		estado: 'Jalisco',
-		miembroDesde: 'mar 2024',
-		fechaRegistro: '9 de marzo de 2024',
-		estatus: 'Certificador Activo',
-		certificaciones: 87,
-		experienciaAnios: 8,
+	const [documentos, setDocumentos] = useState([]);
+
+
+	useEffect(() => {
+		const fetchPerfil = async () => {
+			try {
+				setLoading(true);
+				const id_usuario = localStorage.getItem('id_usuario');
+				const response = await getPerfilDetallado(id_usuario);
+				const documentos = await getDocumentosSubidos(id_usuario);
+				response.documentos = documentos;
+				setPerfil(response);
+				setDocumentos(documentos);
+			} catch (error) {
+				console.error('Error al obtener el perfil detallado:', error);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		fetchPerfil();
+	}, []);
+
+	// Funciones para mantener tu formato de fechas visual
+	const formatearMesAnio = (fechaISO) => {
+		if (!fechaISO) return '';
+		return new Date(fechaISO).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
 	};
 
-	const documentos = [
-		{ titulo: 'Identificación Oficial (INE)', archivo: 'ine_mendez.pdf' },
-		{ titulo: 'Comprobante de Domicilio', archivo: 'comprobante_domicilio.pdf' },
-		{ titulo: 'Cédula Profesional', archivo: 'cedula_profesional.pdf' },
-		{ titulo: 'Certificado de Especialización', archivo: 'certificado_especializacion.pdf' },
-		{ titulo: 'Carta de Antecedentes No Penales', archivo: 'antecedentes_no_penales.pdf' },
-	];
+	const formatearFechaCompleta = (fechaISO) => {
+		if (!fechaISO) return '';
+		return new Date(fechaISO).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+	};
+
+	if (loading) {
+		return <div className="min-h-screen flex items-center justify-center font-sans">Cargando perfil...</div>;
+	}
+
+	if (!perfil) {
+		return <div className="min-h-screen flex items-center justify-center font-sans">No se pudo cargar la información.</div>;
+	}
 
 	return (
 		<div className="min-h-[calc(100vh-2rem)] bg-[#F7F7F4] px-4 py-4 md:px-6 md:py-6 font-serif">
@@ -44,18 +67,15 @@ export default function VetPerfil() {
 					<p className="text-sm text-[#5C6470] font-sans">Consulta y gestiona tu información profesional</p>
 				</div>
 
-				<div className="grid grid-cols-1 gap-4 md:grid-cols-3 font-sans">
+				{/* Se ajustó a grid-cols-2 ya que quitamos "Años de Experiencia" */}
+				<div className="grid grid-cols-1 gap-4 md:grid-cols-2 font-sans">
 					<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 						<p className="text-xs text-[#6B7280]">Certificaciones Realizadas</p>
-						<p className="mt-2 text-3xl font-bold text-[#111827]">{perfil.certificaciones}</p>
-					</div>
-					<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
-						<p className="text-xs text-[#6B7280]">Años de Experiencia</p>
-						<p className="mt-2 text-3xl font-bold text-[#111827]">{perfil.experienciaAnios}</p>
+						<p className="mt-2 text-3xl font-bold text-[#111827]">{perfil.resumen.certificaciones_realizadas}</p>
 					</div>
 					<div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
 						<p className="text-xs text-[#6B7280]">Miembro Desde</p>
-						<p className="mt-2 text-3xl font-bold text-[#111827]">{perfil.miembroDesde}</p>
+						<p className="mt-2 text-3xl font-bold text-[#111827] capitalize">{formatearMesAnio(perfil.resumen.miembro_desde)}</p>
 					</div>
 				</div>
 
@@ -68,27 +88,27 @@ export default function VetPerfil() {
 					<div className="grid grid-cols-1 gap-8 px-6 py-8 md:grid-cols-2">
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Nombre Completo</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.nombre}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_personales.nombre_completo}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">CURP</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.curp}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_personales.curp}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Correo Electrónico</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.correo}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_personales.email}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Teléfono</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.telefono}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_personales.telefono}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Municipio</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.municipio}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_personales.municipio}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Estado</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.estado}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_personales.estado}</p>
 						</div>
 					</div>
 				</section>
@@ -102,27 +122,19 @@ export default function VetPerfil() {
 					<div className="grid grid-cols-1 gap-8 px-6 py-8 md:grid-cols-2">
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Cédula Profesional</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.cedula}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_profesionales.cedula_profesional}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Universidad</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.universidad}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_profesionales.universidad}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Especialidad</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.especialidad}</p>
-						</div>
-						<div>
-							<p className="text-xs text-[#6B7280] font-sans">Años de Experiencia</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.experiencia}</p>
+							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.datos_profesionales.especialidad}</p>
 						</div>
 						<div>
 							<p className="text-xs text-[#6B7280] font-sans">Fecha de Registro</p>
-							<p className="mt-1 text-base font-medium text-[#111827]">{perfil.fechaRegistro}</p>
-						</div>
-						<div>
-							<p className="text-xs text-[#6B7280] font-sans">Estatus</p>
-							<span className="mt-2 inline-flex rounded-full bg-[#E1F6CF] px-3 py-1 text-[11px] font-semibold text-[#2E6B2C]">{perfil.estatus}</span>
+							<p className="mt-1 text-base font-medium text-[#111827]">{formatearFechaCompleta(perfil.datos_profesionales.fecha_registro)}</p>
 						</div>
 					</div>
 				</section>
