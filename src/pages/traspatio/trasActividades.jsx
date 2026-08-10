@@ -1,111 +1,110 @@
 /* eslint-disable no-unused-vars */
 // src/pages/comercial/MisActividades.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Search, ChevronDown } from 'lucide-react';
+import { getActividadProductor } from '../../services/apiTraspatio/actividadProductor';
 
 export default function MisActividades() {
-  // ==========================================
-  // TODO: INTEGRACIÓN CON API (Backend)
-  // ==========================================
-  // const [actividades, setActividades] = useState([]);
-  // const [stats, setStats] = useState({ todas: 0, creaciones: 0, actualizaciones: 0, desactivaciones: 0 });
-  // 
-  // useEffect(() => {
-  //   const fetchActividades = async () => {
-  //     try {
-  //       // Envío de parámetros opcionales para paginación y filtros de fecha/búsqueda
-  //       const res = await api.get('/comercial/actividades/log');
-  //       setActividades(res.data.lista);
-  //       setStats(res.data.estadisticas);
-  //     } catch (error) {
-  //       console.error("Error al cargar el historial de actividades:", error);
-  //     }
-  //   };
-  //   fetchActividades();
-  // }, []);
+  // Estado para la API de actividades
+  const [actividades, setActividades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Filtros en cliente
+  const [searchText, setSearchText] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
-  // ==========================================
-  // DATOS SIMULADOS (MOCK DATA)
-  // ==========================================
-  const mockStats = {
-    todas: 10,
-    creaciones: 5,
-    actualizaciones: 3,
-    desactivaciones: 2
-  };
+  // Cargar actividades al montar el componente
+  useEffect(() => {
+    const fetchActividades = async () => {
+      setLoading(true);
+      try {
+        const data = await getActividadProductor({ skip: 0, limit: 200 });
+        setActividades(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Error cargando actividades:', err);
+        setActividades([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const mockActividades = [
-    {
-      id: 1,
-      fechaHora: '13 mar 2026 04:30 p.m.',
-      accion: 'Crear',
-      entidad: 'Certificación',
-      detalles: 'Creó certificación de salud para animal Res-045'
-    },
-    {
-      id: 2,
-      fechaHora: '13 mar 2026 02:15 p.m.',
-      accion: 'Actualizar',
-      entidad: 'Perfil',
-      detalles: 'Actualizó especialidad profesional a Medicina Veterinaria de Grandes Animales'
-    },
-    {
-      id: 3,
-      fechaHora: '13 mar 2026 11:45 a.m.',
-      accion: 'Crear',
-      entidad: 'Evaluación',
-      detalles: 'Realizó evaluación clínica de animal Angus-123'
-    },
-    {
-      id: 4,
-      fechaHora: '12 mar 2026 03:20 p.m.',
-      accion: 'Desactivar',
-      entidad: 'Documento',
-      detalles: 'Desactivó certificado vencido para animal Hol-067'
-    },
-    {
-      id: 5,
-      fechaHora: '12 mar 2026 10:00 a.m.',
-      accion: 'Crear',
-      entidad: 'Certificación',
-      detalles: 'Emitió certificado de trazabilidad para lote de 8 bovinos'
-    },
-    {
-      id: 6,
-      fechaHora: '11 mar 2026 04:45 p.m.',
-      accion: 'Actualizar',
-      entidad: 'Evaluación',
-      detalles: 'Actualizó resultados de evaluación para animal Brah-089'
-    },
-    {
-      id: 7,
-      fechaHora: '11 mar 2026 01:30 p.m.',
-      accion: 'Crear',
-      entidad: 'Documento',
-      detalles: 'Generó reporte de certificaciones emitidas en marzo'
-    },
-    {
-      id: 8,
-      fechaHora: '10 mar 2026 03:15 p.m.',
-      accion: 'Desactivar',
-      entidad: 'Certificación',
-      detalles: 'Anuló certificación duplicada para animal Sim-045'
-    }
-  ];
+    fetchActividades();
+  }, []);
 
-  // Función para renderizar el badge visual según el tipo de acción
+  // Debounce para el campo de texto de búsqueda
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(searchText.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchText]);
+
+  // Filtrado dinámico local de los registros devueltos por el backend
+  const actividadesFiltradas = useMemo(() => {
+    if (!actividades || actividades.length === 0) return [];
+
+    return actividades.filter((act) => {
+      const detalles = (act.detalles || '').toLowerCase();
+      const entidad = (act.entidad || '').toLowerCase();
+      const accion = (act.accion || '').toLowerCase();
+
+      // Filtro por texto
+      if (debouncedSearch) {
+        const q = debouncedSearch.toLowerCase();
+        if (!detalles.includes(q) && !entidad.includes(q) && !accion.includes(q)) {
+          return false;
+        }
+      }
+
+      // Filtro por rango de fechas
+      if (act.fecha_hora) {
+        const fechaAct = new Date(act.fecha_hora);
+        if (dateFrom) {
+          const desde = new Date(dateFrom);
+          if (fechaAct < desde) return false;
+        }
+        if (dateTo) {
+          const hasta = new Date(dateTo);
+          hasta.setHours(23, 59, 59, 999);
+          if (fechaAct > hasta) return false;
+        }
+      }
+
+      return true;
+    });
+  }, [actividades, debouncedSearch, dateFrom, dateTo]);
+
+  // Badge según tipo de acción del backend
   const getAccionBadge = (accion) => {
-    switch (accion) {
-      case 'Crear':
-        return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Crear</span>;
-      case 'Actualizar':
-        return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">Actualizar</span>;
-      case 'Desactivar':
-        return <span className="bg-[#FFF4D2] text-[#8B6E00] px-3 py-1 rounded-full text-xs font-medium">Desactivar</span>;
-      default:
-        return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">{accion}</span>;
+    const a = (accion || '').toString().toLowerCase();
+    if (a.includes('cre') || a.includes('insert') || a === 'create') {
+      return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">Crear</span>;
     }
+    if (a.includes('act') || a.includes('mod') || a === 'update') {
+      return <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium">Actualizar</span>;
+    }
+    if (a.includes('des') || a.includes('elim') || a === 'delete') {
+      return <span className="bg-[#FFF4D2] text-[#8B6E00] px-3 py-1 rounded-full text-xs font-medium">Desactivar</span>;
+    }
+    return <span className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">{accion || 'N/A'}</span>;
   };
+
+  // Cálculo dinámico de contadores KPI sobre los datos reales del backend
+  const stats = useMemo(() => {
+    const total = actividades.length;
+    let creaciones = 0;
+    let actualizaciones = 0;
+    let desactivaciones = 0;
+
+    actividades.forEach((a) => {
+      const acc = (a.accion || '').toLowerCase();
+      if (acc.includes('cre') || acc.includes('insert') || acc === 'create') creaciones++;
+      else if (acc.includes('act') || acc.includes('mod') || acc === 'update') actualizaciones++;
+      else if (acc.includes('des') || acc.includes('elim') || acc === 'delete') desactivaciones++;
+    });
+
+    return { total, creaciones, actualizaciones, desactivaciones };
+  }, [actividades]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 font-serif pb-10">
@@ -116,43 +115,43 @@ export default function MisActividades() {
         <p className="text-gray-500 mt-2 font-sans">Revisa tu historial de acciones en el sistema</p>
       </div>
 
-      {/* Tarjetas KPI */}
+      {/* Tarjetas KPI Reales */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 font-sans">
         
-        {/* Tarjeta Activa (Todas) */}
-        <div className="bg-[#427D32] text-white p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-[#366829] transition-colors">
+        {/* Todas */}
+        <div className="bg-[#427D32] text-white p-5 rounded-xl flex flex-col justify-between shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-white"></div>
             <span className="text-sm font-medium">Todas</span>
           </div>
-          <span className="text-3xl font-bold">{mockStats.todas}</span>
+          <span className="text-3xl font-bold">{stats.total}</span>
         </div>
         
-        {/* Tarjeta Creaciones */}
-        <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+        {/* Creaciones */}
+        <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
             <span className="text-sm font-medium text-gray-600">Creaciones</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.creaciones}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.creaciones}</span>
         </div>
 
-        {/* Tarjeta Actualizaciones */}
-        <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+        {/* Actualizaciones */}
+        <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-blue-500"></div>
             <span className="text-sm font-medium text-gray-600">Actualizaciones</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.actualizaciones}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.actualizaciones}</span>
         </div>
 
-        {/* Tarjeta Desactivaciones */}
-        <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+        {/* Desactivaciones */}
+        <div className="bg-white border border-gray-200 p-5 rounded-xl flex flex-col justify-between shadow-sm">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full bg-[#EAB308]"></div>
             <span className="text-sm font-medium text-gray-600">Desactivaciones</span>
           </div>
-          <span className="text-3xl font-bold text-gray-900">{mockStats.desactivaciones}</span>
+          <span className="text-3xl font-bold text-gray-900">{stats.desactivaciones}</span>
         </div>
       </div>
 
@@ -162,19 +161,25 @@ export default function MisActividades() {
         <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
           <input 
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
             type="text" 
-            placeholder="Buscar por ID de animal o detalles..." 
+            placeholder="Buscar por entidad o detalles..." 
             className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5C743D] outline-none text-sm" 
           />
         </div>
         
         <div className="flex items-center gap-3 w-full md:w-auto">
           <input 
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
             type="date" 
             className="flex-1 md:w-40 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5C743D] outline-none text-sm text-gray-600 bg-white"
           />
           <span className="text-gray-400 text-sm">hasta</span>
           <input 
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
             type="date" 
             className="flex-1 md:w-40 px-3 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#5C743D] outline-none text-sm text-gray-600 bg-white"
           />
@@ -189,7 +194,7 @@ export default function MisActividades() {
             <thead className="bg-[#F9FAFB] border-b border-gray-100 text-xs font-bold text-gray-700">
               <tr>
                 <th className="px-6 py-5">
-                  <div className="flex items-center gap-1 cursor-pointer hover:text-gray-900">
+                  <div className="flex items-center gap-1">
                     Fecha/Hora <ChevronDown className="h-3 w-3 text-gray-500" />
                   </div>
                 </th>
@@ -199,22 +204,32 @@ export default function MisActividades() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {mockActividades.map((act) => (
-                <tr key={act.id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-5 whitespace-nowrap text-gray-600 font-medium">
-                    {act.fechaHora}
-                  </td>
-                  <td className="px-6 py-5">
-                    {getAccionBadge(act.accion)}
-                  </td>
-                  <td className="px-6 py-5 text-gray-700">
-                    {act.entidad}
-                  </td>
-                  <td className="px-6 py-5 text-gray-700 leading-relaxed">
-                    {act.detalles}
-                  </td>
+              {loading ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">Cargando actividades...</td>
                 </tr>
-              ))}
+              ) : actividadesFiltradas.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-8 text-center text-gray-500">No se encontraron actividades registradas.</td>
+                </tr>
+              ) : (
+                actividadesFiltradas.map((act, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-5 whitespace-nowrap text-gray-600 font-medium">
+                      {act.fecha_hora ? new Date(act.fecha_hora).toLocaleString() : '-'}
+                    </td>
+                    <td className="px-6 py-5">
+                      {getAccionBadge(act.accion)}
+                    </td>
+                    <td className="px-6 py-5 text-gray-700 capitalize">
+                      {act.entidad || '-'}
+                    </td>
+                    <td className="px-6 py-5 text-gray-700 leading-relaxed">
+                      {act.detalles || '-'}
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
