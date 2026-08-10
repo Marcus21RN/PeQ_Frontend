@@ -13,31 +13,40 @@ export default function MiPerfil() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const cargarPerfil = async (mountedRef, showLoading = true) => {
+    if (showLoading) {
+      setLoading(true);
+    }
 
-    const cargarPerfilAsync = async () => {
-      try {
-        const data = await getPerfilAdministrador();
-        if (!isMounted) return;
-        setPerfil(data);
-        setError(null);
-      } catch (requestError) {
-        console.error('Error al cargar el perfil admin:', requestError);
-        if (isMounted) {
-          setError('No se pudo cargar la información del perfil.');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    try {
+      const data = await getPerfilAdministrador();
+
+      if (mountedRef && mountedRef.current === false) {
+        return;
       }
-    };
 
-    cargarPerfilAsync();
+      setPerfil(data);
+      setError(null);
+    } catch (requestError) {
+      console.error('Error al cargar el perfil admin:', requestError);
+
+      if (!mountedRef || mountedRef.current !== false) {
+        setError('No se pudo cargar la información del perfil.');
+      }
+    } finally {
+      if (!mountedRef || mountedRef.current !== false) {
+        setLoading(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const mountedRef = { current: true };
+
+    cargarPerfil(mountedRef);
 
     return () => {
-      isMounted = false;
+      mountedRef.current = false;
     };
   }, []);
 
@@ -193,7 +202,7 @@ export default function MiPerfil() {
           estado_geo: perfil.ciudad,
           fecha_registro: perfil.miembro_desde,
         } : null}
-        onUpdated={cargarPerfil}
+        onUpdated={() => cargarPerfil()}
       />
 
     </div>
