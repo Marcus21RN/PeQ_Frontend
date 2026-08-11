@@ -13,7 +13,7 @@ export default function PanelPrincipalComercial() {
   // Imágenes por defecto según el tipo de categoría
   const categoryImages = {
     bovino: 'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?q=80&w=200&auto=format&fit=crop',
-    porcino: 'https://images.unsplash.com/photo-1604845564883-2945d7d3d259?q=80&w=200&auto=format&fit=crop',
+    porcino: 'https://mx.agroconsultar.com/images/cursoporcinos.jpg',
     ovino: 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=200&auto=format&fit=crop',
     caprino: 'https://images.unsplash.com/photo-1524024973431-2ad916746881?q=80&w=200&auto=format&fit=crop',
     aves: 'https://images.unsplash.com/photo-1548550023-2bf3c49b6b7a?q=80&w=200&auto=format&fit=crop',
