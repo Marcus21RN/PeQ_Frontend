@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/authContext.jsx';
+import logoImage from '../../assets/logo3.png';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,15 +35,17 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-[#E8F0EA] p-4 font-serif">
       <div className="flex w-full max-w-5xl bg-white rounded-2xl shadow-2xl overflow-hidden min-h-150">
         
-        <div className="hidden md:flex flex-col w-1/2 bg-[#336A32] relative p-12 text-white overflow-hidden justify-center">
-          <div className="absolute inset-0 z-0 opacity-20 mix-blend-multiply bg-cover bg-center"></div>
+        <div className="hidden md:flex flex-col w-2/3 bg-[#336A32] relative p-12 text-white overflow-hidden justify-center bg-cover bg-center"style={{ backgroundImage: "url('https://certifiedhumanelatino.org/wp-content/uploads/2018/10/Depositphotos_25301285_XL-scaled-1.jpg')" }}>
+          <div className="absolute inset-0 z-0 opacity-20 mix-blend-multiply "></div>
+          <div className="absolute inset-0 bg-[#336A32]/80 z-0"></div>
 
           <div className="relative z-10 flex flex-col gap-6">
             <div className="bg-white w-28 h-28 rounded-xl flex items-center justify-center p-2 shadow-lg">
+              <img src={logoImage} alt="Logo" className="w-full h-full object-contain" />
             </div>
             
             <h1 className="text-4xl font-bold leading-tight mt-4">
-              Sistema de Regulación <br /> Ganadero
+              Sistema de Regulación <br /> Ganadera
             </h1>
             
             <p className="text-sm text-green-100 font-sans leading-relaxed max-w-sm">
@@ -86,14 +90,29 @@ export default function Login() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
+
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#336A32] focus:border-[#336A32] outline-none transition-all text-gray-900"
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#336A32] focus:border-[#336A32] outline-none transition-all text-gray-900"
                   placeholder="••••••••"
                   required
                 />
+                
+                {/* Botón para alternar la visibilidad */}
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-[#336A32] transition-colors focus:outline-none"
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5 cursor-pointer" />
+                  ) : (
+                    <Eye className="h-5 w-5 cursor-pointer" />
+                  )}
+                </button>
               </div>
             </div>
 
@@ -105,9 +124,9 @@ export default function Login() {
                 />
                 Recordarme
               </label>
-              <a href="#" className="text-[#336A32] hover:underline font-medium">
+              {/*<a href="#" className="text-[#336A32] hover:underline font-medium">
                 ¿Olvidaste tu contraseña?
-              </a>
+              </a>*/}
             </div>
 
             <button
@@ -119,11 +138,16 @@ export default function Login() {
                   : 'bg-[#336A32] hover:bg-[#285327] shadow-lg shadow-green-900/20'
               }`}
             >
-              {isLoading ? 'Verificando datos...' : 'Iniciar Sesión'}
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                </div>
+              ) : (
+                'Iniciar Sesión'
+              )}
             </button>
           </form>
         </div>
-        
       </div>
     </div>
   );
