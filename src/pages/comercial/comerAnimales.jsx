@@ -1,4 +1,4 @@
-
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Search, RotateCcw, Eye, Edit2, Plus } from 'lucide-react';
@@ -92,7 +92,7 @@ export default function MisAnimalesComercial() {
     const searchClean = normalizar(debouncedSearch);
 
     return animales.filter((a) => {
-      const id = normalizar(a.id_animal || a.id || a.arete_id);
+      const id = normalizar(a.arete_id || a.id_animal || a.id);
       const tipo = normalizar(a.tipo_animal || a.tipo);
       const raza = normalizar(a.raza || a.raza_animal);
       const estadoCert = normalizar(a.estado_certificacion || a.estado || a.condicion);
@@ -136,13 +136,14 @@ export default function MisAnimalesComercial() {
     });
   };
 
+  // Pasa prioritariamente el arete_id
   const abrirDetalle = (areteOrId) => {
     setAnimalSeleccionadoId(areteOrId);
     setIsDetalleModalOpen(true);
   };
 
   const abrirEditar = (animalRow) => {
-    const idDisplay = animalRow.id || animalRow.id_animal;
+    const idDisplay = animalRow.arete_id || animalRow.id_animal || animalRow.id;
     const raza = animalRow.raza || animalRow.raza_animal || '';
     const tipo = animalRow.tipo || animalRow.tipo_animal || '';
     const edad = animalRow.edad || (animalRow.edad_anios != null ? `${animalRow.edad_anios} años` : '');
@@ -287,7 +288,7 @@ export default function MisAnimalesComercial() {
               ) : (
                 animalesFiltrados.map((a, idx) => (
                   <tr key={a.id_animal || a.id || idx} className="hover:bg-white transition-colors">
-                    <td className="px-6 py-4 font-bold text-[#3B2211] font-serif">{a.id_animal || a.arete_id || a.id}</td>
+                    <td className="px-6 py-4 font-bold text-[#3B2211] font-serif">{a.arete_id || a.id_animal || a.id}</td>
                     <td className="px-6 py-4">{a.tipo_animal || a.tipo}</td>
                     <td className="px-6 py-4">{a.raza || a.raza_animal}</td>
                     <td className="px-6 py-4">{a.edad_anios != null ? `${a.edad_anios} años` : (a.edad ? `${a.edad} años` : 'N/A')}</td>
@@ -304,7 +305,7 @@ export default function MisAnimalesComercial() {
                     <td className="px-6 py-4">
                       <div className="flex justify-center items-center gap-3">
                         <button 
-                          onClick={() => abrirDetalle(a.id_animal || a.arete_id || a.id)} 
+                          onClick={() => abrirDetalle(a.arete_id || a.id_animal || a.id)} 
                           className="text-[#5C743D] hover:text-[#3B2211] transition-colors" 
                           title="Ver Detalles"
                         >

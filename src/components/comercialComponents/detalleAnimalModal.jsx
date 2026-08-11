@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getFichaTecnicaAnimal } from '../../services/apiTraspatio/fichaTecnica';
+import { getFichaTecnicaAnimalComer } from '../../services/apiComercial/fichaTecnica';
 
 export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
   const [ficha, setFicha] = useState(null);
@@ -14,22 +15,48 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isOpen && animalId) {
-      const fetchFicha = async () => {
-        setLoading(true);
-        setError(null);
-        try {
-          const data = await getFichaTecnicaAnimal(animalId);
-          setFicha(data);
-        } catch (err) {
-          console.error('Error al cargar la ficha técnica:', err);
+    if (!isOpen || !animalId) return;
+
+    let isMounted = true;
+
+    const fetchFichaFallback = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // 1. Intento principal: API Comercial
+        const dataComer = await getFichaTecnicaAnimalComer(animalId);
+        if (isMounted) {
+          setFicha(dataComer);
+          setLoading(false);
+          return;
+        }
+      } catch (errComer) {
+        console.warn('Falló endpoint comercial, intentando traspatio:', errComer);
+      }
+
+      try {
+        // 2. Intento de respaldo: API Traspatio
+        const dataTraspatio = await getFichaTecnicaAnimal(animalId);
+        if (isMounted) {
+          setFicha(dataTraspatio);
+          setLoading(false);
+          return;
+        }
+      } catch (errTras) {
+        console.error('Error al cargar la ficha técnica en ambos servicios:', errTras);
+        if (isMounted) {
           setError('No se pudo obtener la ficha técnica del animal.');
-        } finally {
           setLoading(false);
         }
-      };
-      fetchFicha();
-    }
+      }
+    };
+
+    fetchFichaFallback();
+
+    return () => {
+      isMounted = false;
+    };
   }, [isOpen, animalId]);
 
   if (!isOpen) return null;
@@ -57,7 +84,7 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
           </div>
           <button 
             onClick={onClose} 
-            className="rounded-lg bg-white/10 p-2 text-white transition-colors hover:bg-white/20"
+            className="rounded-lg bg-white/10 p-2 text-white transition-colors hover:bg-white/20 cursor-pointer"
           >
             <X className="h-5 w-5" />
           </button>
@@ -141,7 +168,7 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
                   <div className="grid grid-cols-2 gap-4 pt-4 text-sm">
                     <div>
                       <p className="text-xs font-semibold text-gray-400">Origen</p>
-                      <p className="font-serif font-bold text-[#2C1405]">{ficha.nombre_rancho}, {ficha.ubicacion_origen || 'Michoacán'}</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.nombre_rancho}, {ficha.ubicacion_origen || 'Tijuana'}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-400">Fecha de Registro</p>
@@ -182,11 +209,11 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-400">Contacto</p>
-                      <p className="font-serif font-bold text-[#2C1405]">{ficha.contacto_propietario || '+52 44 4567 8901'}</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.contacto_propietario || 'No registrado'}</p>
                     </div>
                     <div className="col-span-2">
                       <p className="text-xs font-semibold text-gray-400">Ubicación</p>
-                      <p className="font-serif font-bold text-[#2C1405]">{ficha.ubicacion_origen || 'Michoacán, México'}</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{ficha.ubicacion_origen || 'Baja California, México'}</p>
                     </div>
                   </div>
                 </div>
@@ -209,11 +236,11 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-400">Fecha de Certificación</p>
-                      <p className="font-serif font-bold text-[#2C1405]">{formatDate(ficha.fecha_certificacion) || '13/02/2026'}</p>
+                      <p className="font-serif font-bold text-[#2C1405]">{formatDate(ficha.fecha_certificacion)}</p>
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-gray-400">Próxima Revisión</p>
-                      <p className="font-serif font-bold text-red-600">{formatDate(ficha.proxima_revision_sugerida) || '13/05/2026'}</p>
+                      <p className="font-serif font-bold text-red-600">{formatDate(ficha.proxima_revision_sugerida)}</p>
                     </div>
                   </div>
                 </div>
@@ -227,7 +254,7 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
                     </button>
                   </div>
                   <p className="mt-2 text-xs font-medium text-gray-400">
-                    {ficha.enfermedades?.length || 1} vacunación(es) registrada(s)
+                    {ficha.enfermedades?.length || 0} vacunación(es) registrada(s)
                   </p>
                   <div className="mt-4">
                     <span className="rounded-lg bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-600">
@@ -274,7 +301,7 @@ export default function ModalDetalleAnimal({ isOpen, onClose, animalId }) {
                 <div className="rounded-2xl bg-[#2C1405] p-6 text-center text-white shadow-md">
                   <p className="text-xs font-bold tracking-wider uppercase text-amber-100/70">PRECIO DE VENTA</p>
                   <p className="my-2 font-serif text-4xl font-bold tracking-tight">
-                    ${ficha.precio_venta ? ficha.precio_venta.toLocaleString('es-MX') : '8,500'}
+                    ${ficha.precio_venta ? Number(ficha.precio_venta).toLocaleString('es-MX') : '0'}
                   </p>
                   <p className="text-xs font-semibold text-amber-100/50">MXN</p>
 
