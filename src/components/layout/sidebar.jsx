@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LogOut, ChevronLeft, ChevronRight, User } from 'lucide-react';
+import { LogOut, User, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { NAV_ITEMS } from '../../config/navigation';
 import { useAuth } from '../../context/authContext.jsx';
 
@@ -17,8 +17,8 @@ export const Sidebar = () => {
   const getAvatarBg = (rol) => {
     switch (rol) {
       case 'administrador': return 'bg-[#5A3B2A]'; // Café oscuro
-      case 'productor_comercial': return 'bg-[#2E6B2C]'; // Verde oscuro
-      case 'productor_traspatio': return 'bg-[#B4E3A6] text-[#2E6B2C]'; // Verde claro
+      case 'productor_comercial': return 'bg-[#5a7324]'; // Verde oscuro
+      case 'productor_traspatio': return 'bg-[#b3bf56] text-[#2E6B2C]'; // Verde claro
       case 'veterinario': return 'bg-[#B4E3A6] text-[#2E6B2C]'; // Verde claro
       default: return 'bg-gray-500';
     }
@@ -36,20 +36,24 @@ export const Sidebar = () => {
   };
 
   return (
-    <aside className={`relative flex min-h-screen flex-col border-r border-gray-200 bg-white font-serif transition-all duration-300 ease-in-out ${isCollapsed ? 'w-24' : 'w-64'}`}>
+    <aside className={`relative z-20 flex min-h-screen flex-col  bg-white font-serif shadow-md transition-all duration-300 ease-in-out ${isCollapsed ? 'w-18' : 'w-64'}`}>
       
       {/* Botón colapsar / expandir */}
       <button
         type="button"
         onClick={() => setIsCollapsed((current) => !current)}
-        className="absolute right-4 top-4 rounded border border-gray-300 bg-white p-0.5 text-gray-400 transition-colors hover:bg-gray-50 hover:text-gray-600"
+        className={`absolute top-4 bg-white p-0.5 text-gray-400 transition-all duration-300 hover:bg-gray-50 hover:rounded-md hover:text-gray-600 ${
+          isCollapsed 
+            ? 'left-1/2 -translate-x-1/2 right-auto' 
+            : 'right-4 left-auto translate-x-0'
+        }`}
         aria-label={isCollapsed ? 'Expandir barra lateral' : 'Contraer barra lateral'}
       >
-        {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+        {isCollapsed ? <PanelLeftOpen className="h-6 w-6" /> : <PanelLeftClose className="h-6 w-6" />}
       </button>
 
       {/* Sección de Perfil */}
-      <div className={`pb-6 pt-12 ${isCollapsed ? 'px-3' : 'px-6'} flex ${isCollapsed ? 'flex-col items-center gap-3' : 'items-center gap-3'}`}>
+      <div className={`pb-6 pt-18 ${isCollapsed ? 'px-3' : 'px-6'} flex ${isCollapsed ? 'flex-col items-center gap-3' : 'items-center gap-3'}`}>
         <div className={`flex h-12 w-12 items-center justify-center rounded-full text-white ${getAvatarBg(user?.rol_nombre)}`}>
           <User className="w-6 h-6" />
         </div>
