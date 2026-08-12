@@ -1,27 +1,51 @@
-import { Home } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import logoImage from '../../assets/logo3.png'; // Asegúrate de tener el logo en la carpeta assets
+// Opcional: Importa tu logo si lo tienes en la carpeta assets
+
 
 export default function HeaderPublico() {
-  return (
-    <header className="bg-[#4c2d1d] text-[#f4efe9] shadow-md">
-      <div className="max-w-6xl mx-auto px-5 py-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1 text-center">
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tight font-serif">
-              Sistema de Regulación y Control de Ganado
-            </h1>
-            <p className="mt-1 text-sm md:text-base italic text-[#eae0d8]">
-              Verifica, confirma y compra
-            </p>
-          </div>
+  // Define aquí la URL base de tu WordPress local. 
+  // Si tu WordPress está en una subcarpeta de htdocs, agrégala (ej: 'http://localhost/mi-wordpress')
+  const wpBaseUrl = 'http://localhost/peq';
 
-          <Link
-            to="/login"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#f2f0ec] px-4 py-2 text-sm font-medium text-[#2d1a10] shadow-sm transition hover:bg-white"
-          >
-            <Home size={16} />
-            Inicio
-          </Link>
+  return (
+    <header className="sticky top-0 z-50 bg-white text-[#4c2d1d] border-b border-gray-100 font-serif">
+      <div className="max-w-7xl mx-auto px-4 py-4 md:py-5">
+        <div className="flex items-center justify-between">
+          
+          {/* 1. SECCIÓN IZQUIERDA: LOGO */}
+          <a href={`${wpBaseUrl}/`} className="flex items-center gap-2">
+            <img src={logoImage} alt="Logo PeQ" className="h-10 object-contain " /> 
+          </a>
+
+          {/* 2. SECCIÓN CENTRAL: MENÚ DE NAVEGACIÓN */}
+          {/* Se oculta en móviles (hidden lg:flex) para evitar que se amontone */}
+          <nav className="hidden lg:flex items-center gap-7 text-[15px] font-bold">
+            {/* Enlaces hacia WordPress usando <a> */}
+            <a href={`${wpBaseUrl}/`} className="hover:text-[#8a6855] transition-colors">
+              Inicio
+            </a>
+            <a href={`${wpBaseUrl}/sobre-nosotros`} className="hover:text-[#8a6855] transition-colors">
+              Sobre Nosotros
+            </a>
+            <a href={`${wpBaseUrl}/servicios`} className="hover:text-[#8a6855] transition-colors">
+              Servicios
+            </a>
+            <a href={`${wpBaseUrl}/contactanos`} className="hover:text-[#8a6855] transition-colors">
+              Contáctanos
+            </a>
+            <a href={`${wpBaseUrl}/tienda`} className="hover:text-[#8a6855] transition-colors">
+              Tienda
+            </a>
+            
+            {/* Enlaces hacia tu App de React usando <Link> */}
+            <Link to="/publico" className="hover:text-[#8a6855] transition-colors">
+              Catálogo
+            </Link>
+            <Link to="/registrarse" className="hover:text-[#8a6855] transition-colors">
+              Registrarse
+            </Link>
+          </nav>
         </div>
       </div>
     </header>

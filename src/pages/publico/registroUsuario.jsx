@@ -14,16 +14,15 @@ const roleOptions = [
     icon: Stethoscope,
     accent: 'bg-[#91a85b]',
     cardClass: 'bg-[#c4d39a]',
-    badge: 'Límite: 10 animales grandes o 80 aves',
   },
   {
     id: 'traspatio',
     title: 'Rancho de Traspatio',
     description: 'Pequeños productores con crianza familiar y venta local',
     icon: House,
-    accent: 'bg-[#e3e8d7]',
+    accent: 'bg-[#B3BF56]',
     cardClass: 'bg-[#edf1e4]',
-    badge: 'Límite: 10 animales grandes o 80 aves',
+    badge: 'Límite: 10 animales grandes u 80 aves',
   },
   {
     id: 'comercial',
@@ -32,7 +31,7 @@ const roleOptions = [
     icon: Building2,
     accent: 'bg-[#4d2c1d]',
     cardClass: 'bg-[#e7ddd8]',
-    badge: 'Para más de 10 animales grandes o 80 aves',
+    badge: 'Para más de 10 animales grandes u 80 aves',
   },
 ];
 
@@ -52,18 +51,18 @@ export default function RegistroUsuario() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f1ee] text-[#2d1d12]">
+    <div className="min-h-screen bg-[#FBF9F1] text-[#2d1d12]">
       <HeaderPublico />
 
       <main className="mx-auto max-w-6xl px-4 py-16 md:px-8">
-        <div className="rounded-[26px] border border-[#d9d2cc] bg-[#f6f5f2] p-6 shadow-sm md:p-10">
+        <div className="rounded-[26px] bg-[#ffff] p-6 shadow-md md:p-10">
           <div className="mb-10 text-center">
-            <h2 className="font-serif text-5xl font-bold text-[#2d1d12]">Selecciona tu tipo de registro</h2>
-            <p className="mt-4 text-2xl italic text-[#6c564b]">Elige la categoría que mejor describa tu actividad</p>
+            <h2 className="font-serif text-3xl font-bold text-[#2d1d12]">Selecciona tu tipo de registro</h2>
+            <p className="mt-4 text-xl italic text-[#6c564b]">Elige la categoría que mejor describa tu actividad</p>
           </div>
 
           {toast && (
-            <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-[#d9d2cc] bg-[#edf4e6] px-4 py-3 text-[#2e4c1f]">
+            <div className="mb-6 flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-[#2e4c1f]">
               <div className="flex items-center gap-2">
                 <CheckCircle2 size={18} />
                 <span className="text-sm font-medium">{toast.message}</span>
@@ -84,7 +83,7 @@ export default function RegistroUsuario() {
                   key={role.id}
                   type="button"
                   onClick={() => openRoleModal(role.id)}
-                  className={`group flex min-h-107.5 flex-col items-center rounded-[22px] border bg-white p-6 text-center shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md ${
+                  className={`group flex min-h-107.5 flex-col items-center rounded-[22px]    bg-white p-6 text-center transition duration-200 hover:-translate-y-1 hover:shadow-md ${
                     isSelected ? 'border-[#6d8f3b] ring-2 ring-[#dfe9c6]' : 'border-[#d7d0c9]'
                   }`}
                 >
@@ -95,7 +94,7 @@ export default function RegistroUsuario() {
                   <h3 className="font-serif text-3xl font-bold text-[#2d1d12]">{role.title}</h3>
                   <p className="mt-4 max-w-xs text-base leading-relaxed text-[#5f463b]">{role.description}</p>
 
-                  <div className="mt-6 w-full rounded-2xl border border-[#d7d0c9] bg-[#f5f2ee] px-3 py-3 text-sm font-medium text-[#2d1d12]">
+                  <div className="mt-6 w-full  px-3 py-3 text-sm font-medium text-[#2d1d12]">
                     {role.badge}
                   </div>
 
