@@ -13,18 +13,48 @@ export const uploadMediaFile = async (file) => {
   return response.data;
 };
 
-export const registrarVeterinario = async (payload) => {
-  const body = {
-    ...payload,
-    documentos: payload.documentos ?? payload.p_documentos ?? [],
-    p_documentos: payload.p_documentos ?? payload.documentos ?? [],
+const buildDocumentPayload = (documents = []) => {
+  const normalizedDocuments = Array.isArray(documents)
+    ? documents
+    : Object.entries(documents ?? {}).map(([key, value]) => ({
+        tipo: key,
+        url: value?.url,
+        label: value?.label,
+      }));
+
+  return normalizedDocuments.map((doc) => {
+    if (doc && typeof doc === 'object' && ('id_tipo_doc' in doc || 'url_archivo' in doc || 'nota' in doc)) {
+      return {
+        id_tipo_doc: doc.id_tipo_doc ?? 0,
+        url_archivo: doc.url_archivo ?? doc.url ?? '',
+        nota: doc.nota ?? doc.label ?? 'Documento',
+      };
+    }
+
+    return {
+      id_tipo_doc: 0,
+      url_archivo: doc?.url_archivo ?? doc?.url ?? '',
+      nota: doc?.label ?? doc?.tipo ?? 'Documento',
+    };
+  });
+};
+
+const buildRegistroBody = (payload, overrides = {}) => {
+  const cleanPayload = { ...payload, ...overrides };
+  delete cleanPayload.tipo_rol;
+  delete cleanPayload.p_documentos;
+
+  return {
+    ...cleanPayload,
+    documentos: buildDocumentPayload(cleanPayload.documentos ?? cleanPayload.p_documentos ?? []),
   };
+};
+
+export const registrarVeterinario = async (payload) => {
+  const body = buildRegistroBody(payload);
 
   const endpoints = [
-    '/veterinario/registrar/',
-    '/veterinario/register/',
-    '/registro/veterinario/',
-    '/veterinario/registro/',
+    '/registro-veterinario/',
   ];
 
   let lastError = null;
@@ -42,18 +72,12 @@ export const registrarVeterinario = async (payload) => {
 };
 
 export const registrarTraspatio = async (payload) => {
-  const body = {
-    ...payload,
-    documentos: payload.documentos ?? payload.p_documentos ?? [],
-    p_documentos: payload.p_documentos ?? payload.documentos ?? [],
-  };
+  const body = buildRegistroBody(payload, {
+    nombre_granja: payload.nombre_granja ?? payload.nombre_rancho,
+  });
 
   const endpoints = [
     '/registro-productor-traspatio/',
-    '/traspatio/registrar/',
-    '/traspatio/register/',
-    '/registro/traspatio/',
-    '/traspatio/registro/',
   ];
 
   let lastError = null;
@@ -71,18 +95,12 @@ export const registrarTraspatio = async (payload) => {
 };
 
 export const registrarComercial = async (payload) => {
-  const body = {
-    ...payload,
-    documentos: payload.documentos ?? payload.p_documentos ?? [],
-    p_documentos: payload.p_documentos ?? payload.documentos ?? [],
-  };
+  const body = buildRegistroBody(payload, {
+    nombre_rancho: payload.nombre_rancho ?? payload.nombre_granja,
+  });
 
   const endpoints = [
-    '/registro-productor-comercial/',
-    '/comercial/registrar/',
-    '/comercial/register/',
-    '/registro/comercial/',
-    '/comercial/registro/',
+    '/registro-ranchero-comercial/',
   ];
 
   let lastError = null;

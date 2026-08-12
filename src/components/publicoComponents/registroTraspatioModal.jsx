@@ -247,7 +247,6 @@ export default function RegistroTraspatioModal({ isOpen, onClose }) {
 
     try {
       const payload = {
-        tipo_rol: 'productor_traspatio',
         nombre: formData.nombre,
         apellido_paterno: formData.apellido_paterno,
         apellido_materno: formData.apellido_materno,
@@ -261,12 +260,9 @@ export default function RegistroTraspatioModal({ isOpen, onClose }) {
         capacidad_animales: Number(formData.capacidad_animales) || 0,
         superficie_hectareas: Number(formData.superficie_hectareas) || 0,
         documentos: Object.entries(uploadedFiles).map(([key, value]) => ({
-          tipo: key,
-          nombre_archivo: value.fileName,
-          url: value.url,
-          public_id: value.public_id,
-          mime_type: value.mime_type,
-          resource_type: value.resource_type,
+          id_tipo_doc: 0,
+          url_archivo: value.url || '',
+          nota: value.label || key,
         })),
       };
 
