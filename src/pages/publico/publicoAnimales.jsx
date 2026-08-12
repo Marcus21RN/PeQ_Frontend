@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, ListFilter, Search } from 'lucide-react';
+import { ArrowLeft, ListFilter, Search, Grid2x2, TableProperties } from 'lucide-react';
 import HeaderPublico from '../../components/publicoComponents/header.jsx';
 import FooterPublico from '../../components/publicoComponents/footer.jsx';
 import FichaTecnicaPublicoModal from '../../components/publicoComponents/fichaTecnicaModal.jsx';
 import { getAnimalesPorCategoria } from '../../services/apiPublico/ganadoPublico.js';
 
 const defaultImage = 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=1200&auto=format&fit=crop';
+
+const normalizeRanchoType = (value) => {
+  const normalized = String(value ?? '').toLowerCase();
+  if (normalized.includes('traspatio')) return 'traspatio';
+  if (normalized.includes('comercial')) return 'comercial';
+  return 'todos';
+};
 
 export default function PublicoAnimales() {
   const [searchParams] = useSearchParams();
@@ -15,6 +22,8 @@ export default function PublicoAnimales() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchValue, setSearchValue] = useState('');
+  const [selectedRanchoType, setSelectedRanchoType] = useState('todos');
+  const [viewMode, setViewMode] = useState('cards');
   const [selectedAnimal, setSelectedAnimal] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -42,9 +51,15 @@ export default function PublicoAnimales() {
 
   const animalesFiltrados = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
-    if (!query) return animales;
 
     return animales.filter((animal) => {
+      const ranchoType = normalizeRanchoType(animal.tipo_rancho ?? animal.tipoRancho ?? animal.productor ?? '');
+      if (selectedRanchoType !== 'todos' && ranchoType !== selectedRanchoType) {
+        return false;
+      }
+
+      if (!query) return true;
+
       const values = [
         animal.nombre,
         animal.arete,
@@ -52,18 +67,49 @@ export default function PublicoAnimales() {
         animal.productor,
         animal.categoria,
         animal.estado,
+        animal.nombre_rancho,
+        animal.propietario,
       ]
         .filter(Boolean)
-        .join(' ') 
+        .join(' ')
         .toLowerCase();
 
       return values.includes(query);
     });
-  }, [animales, searchValue]);
+  }, [animales, searchValue, selectedRanchoType]);
 
-  const openModal = (animal) => {
-    setSelectedAnimal(animal);
-    setModalOpen(true);
+  const openModal = async (animal) => {
+    const identifier = animal?.no_identificacion ?? animal?.arete ?? animal?.id;
+
+    if (!identifier) {
+      setSelectedAnimal(animal);
+      setModalOpen(true);
+      return;
+    }
+
+    try {
+      const ficha = await import('../../services/apiPublico/ganadoPublico.js').then(({ getFichaTecnicaPorAnimal }) => getFichaTecnicaPorAnimal(identifier));
+      const datosBase = ficha?.datos_base ?? ficha ?? animal;
+      setSelectedAnimal({
+        ...animal,
+        ...datosBase,
+        nombre_rancho: datosBase?.nombre_rancho ?? animal?.nombre_rancho ?? animal?.productor,
+        propietario: datosBase?.propietario ?? animal?.propietario ?? animal?.productor,
+        ubicacion_origen: datosBase?.ubicacion_origen ?? animal?.ubicacion_origen ?? 'Sin ubicación registrada',
+        contacto_propietario: datosBase?.contacto_propietario ?? animal?.contacto_propietario ?? 'Sin contacto registrado',
+        tipo_rancho: datosBase?.tipo_rancho ?? animal?.tipo_rancho ?? animal?.tipoRancho,
+      });
+    } catch (error) {
+      setSelectedAnimal({
+        ...animal,
+        nombre_rancho: animal?.nombre_rancho ?? animal?.productor,
+        propietario: animal?.propietario ?? animal?.productor,
+        ubicacion_origen: animal?.ubicacion_origen ?? 'Sin ubicación registrada',
+        contacto_propietario: animal?.contacto_propietario ?? 'Sin contacto registrado',
+      });
+    } finally {
+      setModalOpen(true);
+    }
   };
 
   const closeModal = () => {
@@ -86,21 +132,73 @@ export default function PublicoAnimales() {
           </Link>
         </div>
 
-        <div className="mb-6 flex justify-center">
-          <div className="w-full max-w-3xl flex items-center gap-3 rounded-xl border border-[#d8d1c9] bg-white px-4 py-3 shadow-sm">
-            <Search size={18} className="text-[#6f5c4f]" />
-            <input
-              value={searchValue}
-              onChange={(event) => setSearchValue(event.target.value)}
-              placeholder="Buscar por nombre, arete o rancho..."
-              className="w-full border-0 bg-transparent text-base text-[#43342d] placeholder:text-[#8a7a6f] outline-none"
-            />
+        <div className="mb-6 flex flex-col gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {[
+              { value: 'todos', label: 'Todos los animales' },
+              { value: 'comercial', label: 'Ranchos Comerciales' },
+              { value: 'traspatio', label: 'Ranchos de Traspatio' },
+            ].map((option) => {
+              const active = selectedRanchoType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setSelectedRanchoType(option.value)}
+                  className={`inline-flex items-center justify-center rounded-xl border px-5 py-3 text-base font-semibold transition ${
+                    active
+                      ? 'border-[#5c7b31] bg-[#a8ba70] text-[#233318] shadow-sm'
+                      : 'border-[#d8d1c9] bg-white text-[#4a2d1d] hover:bg-[#f9f7f5]'
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="w-full max-w-3xl flex items-center gap-3 rounded-xl border border-[#d8d1c9] bg-white px-4 py-3 shadow-sm">
+              <Search size={18} className="text-[#6f5c4f]" />
+              <input
+                value={searchValue}
+                onChange={(event) => setSearchValue(event.target.value)}
+                placeholder="Buscar por nombre, arete o rancho..."
+                className="w-full border-0 bg-transparent text-base text-[#43342d] placeholder:text-[#8a7a6f] outline-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 self-end md:self-auto">
+              <span className="text-sm font-semibold uppercase tracking-wide text-[#6e5a4b]">Vista</span>
+              <div className="flex items-center gap-2 rounded-xl border border-[#d8d1c9] bg-white p-1 shadow-sm">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('cards')}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    viewMode === 'cards' ? 'bg-[#5c7b31] text-white' : 'text-[#4a2d1d] hover:bg-[#f5f3ef]'
+                  }`}
+                >
+                  <Grid2x2 size={16} />
+                  Tarjetas
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                    viewMode === 'table' ? 'bg-[#5c7b31] text-white' : 'text-[#4a2d1d] hover:bg-[#f5f3ef]'
+                  }`}
+                >
+                  <TableProperties size={16} />
+                  Tabla
+                </button>
+              </div>
+            </div>
           </div>
         </div>
 
         <div className="mb-8">
           <h2 className="text-4xl font-bold text-[#2f1d14]">{categoria}</h2>
-          <p className="mt-2 text-lg text-[#6b5447]">{animales.length} animales</p>
+          <p className="mt-2 text-lg text-[#6b5447]">{animalesFiltrados.length} animales</p>
         </div>
 
         {loading ? (
@@ -113,7 +211,7 @@ export default function PublicoAnimales() {
           <div className="rounded-2xl border border-[#d9d2cc] bg-white px-6 py-10 text-center text-[#5e473c]">
             No se encontraron animales para esta categoría.
           </div>
-        ) : (
+        ) : viewMode === 'cards' ? (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {animalesFiltrados.map((animal) => (
               <article
@@ -191,11 +289,11 @@ export default function PublicoAnimales() {
                     fecha_registro: null,
                     notas_adicionales: 'Sin notas adicionales.',
                     precio_venta: animal.precio,
-                    nombre_rancho: animal.productor,
-                    tipo_rancho: animal.tipoRancho || 'Sin tipo',
-                    propietario: animal.productor,
-                    contacto_propietario: 'Sin contacto registrado',
-                    ubicacion_origen: 'Sin ubicación registrada',
+                    nombre_rancho: animal.nombre_rancho ?? animal.productor,
+                    tipo_rancho: animal.tipo_rancho ?? animal.tipoRancho ?? 'Sin tipo',
+                    propietario: animal.propietario ?? animal.productor,
+                    contacto_propietario: animal.contacto_propietario ?? 'Sin contacto registrado',
+                    ubicacion_origen: animal.ubicacion_origen ?? 'Sin ubicación registrada',
                     certificado_por: animal.certificadoPor || 'Sin información',
                     cedula_profesional: 'Sin cédula registrada',
                     fecha_certificacion: null,
@@ -209,6 +307,83 @@ export default function PublicoAnimales() {
                 </button>
               </article>
             ))}
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-2xl border border-[#d9d2cc] bg-white shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse text-left">
+                <thead className="bg-[#f3efe9] text-[#3a2417]">
+                  <tr>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Animal</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Arete</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Raza</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Sexo</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Peso</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Rancho</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Precio</th>
+                    <th className="px-5 py-4 text-sm font-bold uppercase tracking-wide">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {animalesFiltrados.map((animal) => (
+                    <tr key={animal.id || `${animal.arete}-${animal.nombre}`} className="border-t border-[#e9e1db]">
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={animal.foto || defaultImage}
+                            alt={animal.nombre}
+                            className="h-11 w-11 rounded-lg border border-[#ddd5d0] object-cover"
+                          />
+                          <div>
+                            <p className="text-base font-bold text-[#2a1a12]">{animal.nombre}</p>
+                            <p className="text-xs text-[#6b5447]">{animal.categoria}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-sm font-semibold text-[#3b2d26]">{animal.arete}</td>
+                      <td className="px-5 py-4 text-sm text-[#3b2d26]">{animal.raza}</td>
+                      <td className="px-5 py-4 text-sm text-[#3b2d26]">{animal.sexo}</td>
+                      <td className="px-5 py-4 text-sm text-[#3b2d26]">{animal.peso} kg</td>
+                      <td className="px-5 py-4 text-sm text-[#3b2d26]">{animal.productor}</td>
+                      <td className="px-5 py-4 text-sm font-bold text-[#2a4930]">${Number(animal.precio || 0).toLocaleString('es-MX')}</td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => openModal({
+                            no_identificacion: animal.no_identificacion || animal.arete || animal.nombre,
+                            raza: animal.raza,
+                            categoria: animal.categoria,
+                            sexo: animal.sexo,
+                            edad: animal.edad,
+                            peso_kg: animal.peso,
+                            condicion_general: animal.estado,
+                            proposito_produccion: 'Venta de ganado',
+                            tiene_crias: false,
+                            fecha_registro: null,
+                            notas_adicionales: 'Sin notas adicionales.',
+                            precio_venta: animal.precio,
+                            nombre_rancho: animal.nombre_rancho ?? animal.productor,
+                            tipo_rancho: animal.tipo_rancho ?? animal.tipoRancho ?? 'Sin tipo',
+                            propietario: animal.propietario ?? animal.productor,
+                            contacto_propietario: animal.contacto_propietario ?? 'Sin contacto registrado',
+                            ubicacion_origen: animal.ubicacion_origen ?? 'Sin ubicación registrada',
+                            certificado_por: animal.certificadoPor || 'Sin información',
+                            cedula_profesional: 'Sin cédula registrada',
+                            fecha_certificacion: null,
+                            proxima_revision_sugerida: null,
+                            historial_medico: [],
+                          })}
+                          className="inline-flex items-center gap-2 rounded-xl bg-[#4c2d1d] px-3 py-2 text-sm font-semibold text-white hover:bg-[#613c2c]"
+                        >
+                          <ListFilter size={14} />
+                          Ver
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>

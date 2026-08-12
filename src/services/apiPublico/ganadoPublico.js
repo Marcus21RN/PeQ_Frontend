@@ -48,24 +48,40 @@ export const getAnimalesPorCategoria = async (categoria) => {
 
   const rows = getArrayData(response.data);
 
-  return rows.map((animal) => ({
-    id: animal?.no_identificacion ?? animal?.id_animal ?? animal?.id ?? animal?.arete_id,
-    nombre: animal?.no_identificacion ?? animal?.arete_id ?? 'Sin identificación',
-    arete: animal?.no_identificacion ?? animal?.arete_id ?? 'Sin identificación',
-    categoria: categoriaSeleccionada?.nombre ?? animal?.categoria ?? animal?.nombre_categoria ?? 'Sin categoría',
-    raza: animal?.raza_animal ?? animal?.raza ?? 'Sin raza',
-    sexo: animal?.genero ?? animal?.sexo ?? 'Sin sexo',
-    edad: animal?.edad_anios ?? animal?.edad ?? 0,
-    peso: animal?.peso_kg ?? animal?.peso ?? 0,
-    estado: animal?.condicion ?? animal?.estado ?? animal?.estado_certificacion ?? 'Sin estado',
-    precio: animal?.precio_venta ?? animal?.precio ?? 0,
-    productor: animal?.nombre_rancho ?? animal?.rancho ?? 'Sin rancho',
-    certificadoPor: animal?.certificado_por ?? animal?.certificadoPor ?? 'Sin información',
-    foto: animal?.foto_url ?? animal?.foto ?? null,
-    tipoRancho: animal?.tipo_rancho ?? animal?.tipoRancho ?? 'Sin tipo',
-    condicion: animal?.condicion ?? 'Sin condición',
-    no_identificacion: animal?.no_identificacion ?? animal?.arete_id ?? 'Sin identificación',
-  }));
+  return rows.map((animal) => {
+    const base = animal?.datos_base ?? animal;
+    const nombreRancho = base?.nombre_rancho ?? base?.rancho ?? animal?.nombre_rancho ?? animal?.rancho ?? 'Sin rancho';
+    const propietario = base?.propietario ?? animal?.propietario ?? animal?.nombre_propietario ?? nombreRancho;
+    const ubicacion = base?.ubicacion_origen ?? animal?.ubicacion_origen ?? animal?.ubicacion ?? 'Sin ubicación registrada';
+    const tipoRancho = base?.tipo_rancho ?? animal?.tipo_rancho ?? animal?.tipoRancho ?? 'Sin tipo';
+    const certificadoPor = base?.certificado_por ?? animal?.certificado_por ?? animal?.certificadoPor ?? 'Sin información';
+    const noIdentificacion = base?.no_identificacion ?? animal?.no_identificacion ?? animal?.arete_id ?? animal?.id_animal ?? 'Sin identificación';
+
+    return {
+      id: noIdentificacion,
+      nombre: noIdentificacion,
+      arete: noIdentificacion,
+      categoria: categoriaSeleccionada?.nombre ?? base?.categoria ?? animal?.categoria ?? animal?.nombre_categoria ?? 'Sin categoría',
+      raza: base?.raza_animal ?? base?.raza ?? animal?.raza_animal ?? animal?.raza ?? 'Sin raza',
+      sexo: base?.sexo ?? animal?.sexo ?? animal?.genero ?? 'Sin sexo',
+      edad: base?.edad_anios ?? base?.edad ?? animal?.edad_anios ?? animal?.edad ?? 0,
+      peso: base?.peso_kg ?? base?.peso ?? animal?.peso_kg ?? animal?.peso ?? 0,
+      estado: base?.condicion_general ?? base?.condicion ?? animal?.condicion ?? animal?.estado ?? 'Sin estado',
+      proposito_produccion: base?.proposito_produccion ?? animal?.proposito_produccion ?? animal?.proposito ?? 'Sin propósito',
+      precio: base?.precio_venta ?? base?.precio ?? animal?.precio_venta ?? animal?.precio ?? 0,
+      productor: nombreRancho,
+      nombre_rancho: nombreRancho,
+      propietario,
+      ubicacion_origen: ubicacion,
+      contacto_propietario: base?.contacto_propietario ?? animal?.contacto_propietario ?? animal?.telefono ?? 'Sin contacto registrado',
+      certificadoPor,
+      foto: animal?.foto_url ?? animal?.foto ?? null,
+      tipoRancho: tipoRancho,
+      tipo_rancho: tipoRancho,
+      condicion: base?.condicion_general ?? base?.condicion ?? 'Sin condición',
+      no_identificacion: noIdentificacion,
+    };
+  });
 };
 
 export const getFichaTecnicaPorAnimal = async (areteId) => {

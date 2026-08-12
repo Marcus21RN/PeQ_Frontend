@@ -8,6 +8,7 @@ import Login from './pages/auth/login.jsx';
 // Público
 import PublicoCatalogo from './pages/publico/publicoCatalogo.jsx';
 import PublicoAnimales from './pages/publico/publicoAnimales.jsx';
+import RegistroUsuario from './pages/publico/registroUsuario.jsx';
 
 // Admin
 import AdminDashboard from './pages/admin/dashboard.jsx';
@@ -134,6 +135,7 @@ function App() {
         <Route path="/unauthorized" element={<Unauthorized />} />
         <Route path="/publico" element={<PublicoCatalogo />} />
         <Route path="/publico/animales" element={<PublicoAnimales />} />
+        <Route path="/registro" element={<RegistroUsuario />} />
 
         <Route element={<ProtectedRoute allowedRoles={['administrador', 'veterinario', 'productor_comercial', 'productor_traspatio']} />}>
           <Route element={<MainLayout />}>
