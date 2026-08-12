@@ -72,7 +72,7 @@ export default function PublicoAnimales() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f3f1ee] text-[#2d1d12]">
+    <div className="min-h-screen bg-[#ffff] text-[#2d1d12]">
       <HeaderPublico />
 
       <main className="max-w-6xl mx-auto px-4 py-8 md:py-10">
@@ -114,11 +114,11 @@ export default function PublicoAnimales() {
             No se encontraron animales para esta categoría.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {animalesFiltrados.map((animal) => (
               <article
                 key={animal.id || `${animal.arete}-${animal.nombre}`}
-                className="rounded-2xl border border-[#d9d2cc] bg-[#f7f5f3] p-5 shadow-sm"
+                className="rounded-2xl border border-[#d9d2cc] bg-[#ffff] p-5 shadow-sm"
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">

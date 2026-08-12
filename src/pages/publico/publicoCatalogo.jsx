@@ -60,7 +60,7 @@ export default function PublicoCatalogo() {
   }, [categorias, searchValue]);
 
   return (
-    <div className="min-h-screen bg-[#f3f1ee] text-[#2d1d12]">
+    <div className="min-h-screen bg-[#fffff] text-[#2d1d12]">
       <HeaderPublico />
 
       <main className="max-w-6xl mx-auto px-4 py-8 md:py-10">
@@ -96,20 +96,20 @@ export default function PublicoCatalogo() {
             No se encontraron categorías para esta búsqueda.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3 xl:grid-cols-3">
             {categoriasFiltradas.map((categoria) => (
               <Link
                 key={categoria.id}
                 to={`/publico/animales?categoria=${encodeURIComponent(categoria.nombre)}`}
-                className="group rounded-2xl border border-[#d9d2cc] bg-[#f7f5f3] p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
+                className="group rounded-2xl border border-[#d9d2cc] bg-[#fffff] p-4 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
               >
                 <div className="relative mb-5">
                   <img
                     src={getCategoryImage(categoria.nombre)}
                     alt={categoria.nombre}
-                    className="h-36 w-full rounded-xl object-cover"
+                    className="h-20 w-20 rounded-xl  object-cover"
                   />
-                  <span className="absolute right-3 top-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#5d7e2f] text-lg font-bold text-white shadow-md">
+                  <span className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#5d7e2f] text-lg font-bold text-white shadow-md">
                     {categoria.total || 0}
                   </span>
                 </div>
