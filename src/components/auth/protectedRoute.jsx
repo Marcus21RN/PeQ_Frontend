@@ -13,7 +13,7 @@ export const ProtectedRoute = ({ allowedRoles }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/unauthorized" replace />;
   }
 
   // Ahora validamos contra el rol traducido a texto (ej. 'admin', 'productor', 'veterinario')

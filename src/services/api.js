@@ -36,9 +36,12 @@ api.interceptors.response.use(
       switch (status) {
         case 401:
           console.warn('Sesión expirada o token inválido.');
-          localStorage.removeItem('access_token'); // Limpiamos tu token específico
-          // Redirección forzada al login para limpiar estado de la app
-          window.location.href = '/login'; 
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('id_usuario');
+          localStorage.removeItem('user_info');
+          if (!window.location.pathname.startsWith('/login')) {
+            window.location.href = '/login';
+          }
           break;
         case 403:
           console.warn('Acceso denegado (403). No tienes permisos.');
