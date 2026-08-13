@@ -42,7 +42,7 @@ export default function HeaderPublico() {
             <Link to="/publico" className="hover:text-[#8a6855] transition-colors">
               Catálogo
             </Link>
-            <Link to="/registrarse" className="hover:text-[#8a6855] transition-colors">
+            <Link to="/registro" className="hover:text-[#8a6855] transition-colors">
               Registrarse
             </Link>
           </nav>

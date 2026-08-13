@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Loader2, User } from 'lucide-react';
 import { useAuth } from '../../context/authContext.jsx';
 import logoImage from '../../assets/logo3.png';
 
@@ -68,17 +68,17 @@ export default function Login() {
             )}
 
             <div className="flex flex-col gap-2">
-              <label className="text-sm text-gray-700 font-medium">Correo Electrónico</label>
+              <label className="text-sm text-gray-700 font-medium">Usuario</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Mail className="h-5 w-5 text-gray-400" />
+                  <User className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#336A32] focus:border-[#336A32] outline-none transition-all text-gray-900"
-                  placeholder="correo@ejemplo.com"
+                  placeholder="Ingresa tu usuario"
                   required
                 />
               </div>

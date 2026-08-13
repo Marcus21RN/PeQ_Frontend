@@ -8,6 +8,27 @@ import { getAnimalesPorCategoria } from '../../services/apiPublico/ganadoPublico
 
 const defaultImage = 'https://images.unsplash.com/photo-1500595046743-cd271d694d30?q=80&w=1200&auto=format&fit=crop';
 
+const animalCategoryImages = {
+  bovino: 'https://images.unsplash.com/photo-1570042225831-d98fa7577f1e?q=80&w=1200&auto=format&fit=crop',
+  porcino: 'https://mx.agroconsultar.com/images/cursoporcinos.jpg',
+  ovino: 'https://images.unsplash.com/photo-1484557985045-edf25e08da73?q=80&w=1200&auto=format&fit=crop',
+  caprino: 'https://images.unsplash.com/photo-1524024973431-2ad916746881?q=80&w=1200&auto=format&fit=crop',
+  aves: 'https://images.unsplash.com/photo-1548550023-2bf3c49b6b7a?q=80&w=1200&auto=format&fit=crop',
+  gallina: 'https://images.unsplash.com/photo-1548550023-2bf3c49b6b7a?q=80&w=1200&auto=format&fit=crop',
+  pollo: 'https://images.unsplash.com/photo-1548550023-2bf3c49b6b7a?q=80&w=1200&auto=format&fit=crop',
+};
+
+const getAnimalImage = (animal) => {
+  if (animal?.foto) {
+    return animal.foto;
+  }
+
+  const categoryKey = String(animal?.categoria || animal?.nombre_categoria || '').toLowerCase();
+  const matchedKey = Object.keys(animalCategoryImages).find((key) => categoryKey.includes(key));
+
+  return matchedKey ? animalCategoryImages[matchedKey] : defaultImage;
+};
+
 const normalizeRanchoType = (value) => {
   const normalized = String(value ?? '').toLowerCase();
   if (normalized.includes('traspatio')) return 'traspatio';
@@ -221,7 +242,7 @@ export default function PublicoAnimales() {
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <img
-                      src={animal.foto || defaultImage}
+                      src={getAnimalImage(animal)}
                       alt={animal.nombre}
                       className="h-16 w-16 rounded-lg object-cover border border-[#ddd5d0]"
                     />
@@ -330,7 +351,7 @@ export default function PublicoAnimales() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <img
-                            src={animal.foto || defaultImage}
+                            src={getAnimalImage(animal)}
                             alt={animal.nombre}
                             className="h-11 w-11 rounded-lg border border-[#ddd5d0] object-cover"
                           />
